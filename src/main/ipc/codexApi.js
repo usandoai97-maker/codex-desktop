@@ -12,7 +12,7 @@ const plugins = require('../plugins');
 const API_URL = 'https://chatgpt.com/backend-api/codex/responses';
 const MODELS_URL = 'https://chatgpt.com/backend-api/codex/models';
 const CLIENT_VERSION = process.env.CODEX_CLIENT_VERSION || '0.164.0';
-const FALLBACK_MODELS = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-sol', 'gpt-5.5'];
+const FALLBACK_MODELS = ['gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna', 'gpt-5.5'];
 const ENABLE_TOOLS = process.env.CODEX_ENABLE_TOOLS !== '0';
 
 let reuseGloballyDisabled = false;

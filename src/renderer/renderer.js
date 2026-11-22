@@ -19,6 +19,7 @@ const els = {
   cfgWorkingDir: $('cfgWorkingDir'), cfgAllowShell: $('cfgAllowShell'), cfgAllowWrite: $('cfgAllowWrite'),
   cfgAskConfirm: $('cfgAskConfirm'), cfgPython: $('cfgPython'), cfgRounds: $('cfgRounds'),
   cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'), cfgReuse: $('cfgReuse'), cfg5hLimit: $('cfg5hLimit'),
+  cfgPipelineModel: $('cfgPipelineModel'),
   cfg5hTokenLimit: $('cfg5hTokenLimit'),
   cfgPickDir: $('cfgPickDir'), saveSettings: $('saveSettings'), settingsMsg: $('settingsMsg'),
   permissionModal: $('permissionModal'), permissionInfo: $('permissionInfo'),
@@ -749,6 +750,7 @@ async function loadSettings() {
   els.cfgEffort.value = s.reasoningEffort || 'high';
   els.effort.value = els.cfgEffort.value;
   els.cfgReuse.checked = s.reuseResponses !== false;
+  els.cfgPipelineModel.value = s.pipelineModel || 'gpt-5.6-terra';
   els.cfg5hLimit.value = s.fiveHourLimit || 0;
   els.cfg5hTokenLimit.value = s.fiveHourTokenLimit || 0;
   applyFullAccessUI(s.fullAccess);
@@ -767,6 +769,7 @@ async function saveSettings() {
     fiveHourLimit: Number(els.cfg5hLimit.value) || 0,
     fiveHourTokenLimit: Number(els.cfg5hTokenLimit.value) || 0,
     reuseResponses: els.cfgReuse.checked,
+    pipelineModel: els.cfgPipelineModel.value.trim() || 'gpt-5.6-terra',
   });
   els.effort.value = els.cfgEffort.value;
   applyFullAccessUI(els.cfgFullAccess.checked);

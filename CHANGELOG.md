@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.2] - 2026-11-22
+
+### Fixed
+
+- Plugin pipelines now use `gpt-5.6-terra` for both agents (the previous default
+  `gpt-6.1-sol` is rejected for ChatGPT-account Codex sessions).
+- New setting **Modelo dos plugins** to choose the pipeline model.
+
 ## [1.8.1] - 2026-11-22
 
 ### Fixed

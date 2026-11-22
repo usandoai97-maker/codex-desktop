@@ -6,7 +6,7 @@ const auth = require('../codexAuth');
 const { streamRound } = require('../ipc/codexApi');
 const { getSettings } = require('../settings');
 
-const FALLBACK_MODELS = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-sol', 'gpt-5.5'];
+const FALLBACK_MODELS = ['gpt-5.6-terra', 'gpt-5.6-sol', 'gpt-5.6-luna', 'gpt-5.5'];
 
 function emit(event, type, data) {
   event.sender.send('codex-api:stream-chunk', { type, ...data });
@@ -20,7 +20,7 @@ async function runPipeline(plugin, task, event) {
 
   const outputs = [];
   let context = '';
-  const model = FALLBACK_MODELS[0];
+  const model = getSettings().pipelineModel || FALLBACK_MODELS[0];
   const effort = getSettings().reasoningEffort || 'high';
 
   for (const stage of plugin.pipeline) {

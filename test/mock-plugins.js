@@ -30,10 +30,12 @@ fs.writeFileSync(path.join(TMP, 'codex-auth.json'), Buffer.from(JSON.stringify({
 // Stub do streamRound para não chamar a API
 const apiPath = require.resolve('../src/main/ipc/codexApi');
 const stageTools = [];
+const stageModels = [];
 require.cache[apiPath] = {
   id: apiPath, filename: apiPath, loaded: true,
   exports: {
-    streamRound: async ({ toolAllow }) => {
+    streamRound: async ({ toolAllow, model }) => {
+      stageModels.push(model);
       stageTools.push(toolAllow ? toolAllow.source : null);
       return { error: false, text: 'resultado etapa ' + stageTools.length, tokens: 12 };
     },
@@ -66,7 +68,8 @@ const { runPipeline } = require('../src/main/plugins/pipeline');
   assert.ok(events.some((e) => e.type === 'plugin-stage'));
   assert.ok(stageTools[0].includes('generate_'));
   assert.ok(stageTools[1].includes('execute_luau'));
-  console.log('✓ pipeline roda 2 agentes com ferramentas diferentes');
+  assert.deepEqual(stageModels, ['gpt-5.6-terra', 'gpt-5.6-terra']);
+  console.log('✓ pipeline roda 2 agentes com gpt-5.6-terra');
 
   console.log('\nTODOS OS TESTES PASSARAM');
   process.exit(0);

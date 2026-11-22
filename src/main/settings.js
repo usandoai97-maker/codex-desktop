@@ -20,6 +20,7 @@ const DEFAULTS = {
   fiveHourTokenLimit: 0,
   reuseResponses: false,
   activePlugin: '',
+  pipelineModel: 'gpt-5.6-terra',
   mcpServers: [],
 };
 
