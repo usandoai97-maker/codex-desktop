@@ -31,11 +31,31 @@ fs.writeFileSync(path.join(TMP, 'codex-auth.json'), Buffer.from(JSON.stringify({
 const apiPath = require.resolve('../src/main/ipc/codexApi');
 const stageTools = [];
 const stageModels = [];
+const stagePrompts = [];
+const toolInvocations = [];
+
+// Stub de tools: simula a descoberta determinística do Studio
+const toolsPath = require.resolve('../src/main/tools');
+require.cache[toolsPath] = {
+  id: toolsPath, filename: toolsPath, loaded: true,
+  exports: {
+    invoke: async (name) => {
+      toolInvocations.push(name);
+      if (name === 'mcp_roblox_studio__list_roblox_studios') {
+        return { ok: true, result: { content: [{ text: JSON.stringify({
+          studios: [{ id: 'studio-1', name: 'Place1' }],
+        }) }] } };
+      }
+      return { ok: true, result: {} };
+    },
+  },
+};
 require.cache[apiPath] = {
   id: apiPath, filename: apiPath, loaded: true,
   exports: {
-    streamRound: async ({ toolAllow, model }) => {
+    streamRound: async ({ toolAllow, model, input }) => {
       stageModels.push(model);
+      stagePrompts.push(input?.[0]?.content || '');
       stageTools.push(toolAllow ? toolAllow.source : null);
       return { error: false, text: 'resultado etapa ' + stageTools.length, tokens: 12 };
     },
@@ -69,7 +89,10 @@ const { runPipeline } = require('../src/main/plugins/pipeline');
   assert.ok(stageTools[0].includes('generate_'));
   assert.ok(stageTools[1].includes('execute_luau'));
   assert.deepEqual(stageModels, ['gpt-5.6-terra', 'gpt-5.6-terra']);
-  console.log('✓ pipeline roda 2 agentes com gpt-5.6-terra');
+  assert.ok(toolInvocations.includes('mcp_roblox_studio__list_roblox_studios'));
+  assert.ok(stagePrompts.every((p) => p.includes('studio-1')));
+  assert.ok(stagePrompts.every((p) => p.includes('CRIE de fato')));
+  console.log('✓ pipeline descobre studio e injeta id nos 2 agentes');
 
   console.log('\nTODOS OS TESTES PASSARAM');
   process.exit(0);

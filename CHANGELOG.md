@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.3] - 2026-11-22
+
+### Fixed
+
+- Plugin pipelines now discover the connected Roblox Studio **before** running
+  the agents and inject the `studio_id` into both prompts, so `execute_luau` and
+  the generation tools can actually create objects.
+- Both agent allowlists include `list_roblox_studios` as a fallback.
+- Stage prompts explicitly require real creation in Studio instead of plans.
+
 ## [1.8.2] - 2026-11-22
 
 ### Fixed
