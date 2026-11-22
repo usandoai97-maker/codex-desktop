@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   usage: {
     get: () => ipcRenderer.invoke('usage:get'),
     cached: () => ipcRenderer.invoke('usage:cached'),
+    local5h: () => ipcRenderer.invoke('usage:local5h'),
     openSettings: () => ipcRenderer.invoke('usage:open-settings'),
   },
   mcp: {

@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-11-22
+
+### Added
+
+- **Local 5-hour window counter** shared by Chat and Codex. Every message is
+  timestamped in a rolling 5h window and shown in the Usage panel, with reset
+  time and an optional configurable cap (`fiveHourLimit`, `0` = count only).
+- Honest labelling: the Codex OAuth API only exposes a 30-day window on Free
+  accounts (`x-codex-primary-window-minutes: 43200`); the 5h quota shown in the
+  ChatGPT web app is not exposed through this token, so the new counter is local
+  and clearly marked as such.
+
 ## [1.1.0] - 2026-11-21
 
 ### Added

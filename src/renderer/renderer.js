@@ -18,7 +18,7 @@ const els = {
   historyList: $('historyList'), refreshHistory: $('refreshHistory'), clearHistory: $('clearHistory'),
   cfgWorkingDir: $('cfgWorkingDir'), cfgAllowShell: $('cfgAllowShell'), cfgAllowWrite: $('cfgAllowWrite'),
   cfgAskConfirm: $('cfgAskConfirm'), cfgPython: $('cfgPython'), cfgRounds: $('cfgRounds'),
-  cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'),
+  cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'), cfg5hLimit: $('cfg5hLimit'),
   cfgPickDir: $('cfgPickDir'), saveSettings: $('saveSettings'), settingsMsg: $('settingsMsg'),
   permissionModal: $('permissionModal'), permissionInfo: $('permissionInfo'),
   permAllow: $('permAllow'), permDeny: $('permDeny'),
@@ -235,9 +235,19 @@ function limitBar(label, window) {
   </div>`;
 }
 
-function renderUsage(data) {
+function renderUsage(data, local) {
+  const localBox = local ? `<div class="panel usage-local">
+    <h2>Janela de 5 horas (contador do app)</h2>
+    <div class="usage-head"><span>Mensagens enviadas nas últimas 5h: <strong>${local.count}</strong>${
+      local.limit ? ` de ${local.limit}` : ''}</span>
+      <span>${local.resetAt ? 'reseta ' + new Date(local.resetAt).toLocaleTimeString() : '—'}</span></div>
+    ${local.leftPercent !== null ? limitBar('Restante', local) : ''}
+    <p class="usage-note">O ChatGPT Web mostra uma cota de 5h, mas a API da Codex não a expõe via OAuth.
+    Este contador é local e real: registra cada mensagem enviada por Chat e Codex nesta janela.</p>
+  </div>` : '';
+
   if (!data || !data.ok) {
-    els.usageBox.innerHTML = `<div class="error">${data?.error || 'Sem dados de uso.'}</div>`;
+    els.usageBox.innerHTML = localBox + `<div class="error">${data?.error || 'Sem dados de uso.'}</div>`;
     return;
   }
   const d = data.defaultLimit || {};
@@ -268,8 +278,11 @@ function renderUsage(data) {
 
 async function loadUsage() {
   try {
-    const data = await window.electronAPI.usage.get();
-    renderUsage(data);
+    const [data, local] = await Promise.all([
+      window.electronAPI.usage.get(),
+      window.electronAPI.usage.local5h(),
+    ]);
+    renderUsage(data, local);
   } catch (err) {
     els.usageBox.innerHTML = `<div class="error">${err.message}</div>`;
   }
@@ -599,6 +612,7 @@ async function loadSettings() {
   els.cfgRounds.value = s.maxToolRounds;
   els.cfgEffort.value = s.reasoningEffort || 'high';
   els.effort.value = els.cfgEffort.value;
+  els.cfg5hLimit.value = s.fiveHourLimit || 0;
   applyFullAccessUI(s.fullAccess);
 }
 
@@ -612,6 +626,7 @@ async function saveSettings() {
     maxToolRounds: Number(els.cfgRounds.value) || 5,
     reasoningEffort: els.cfgEffort.value,
     fullAccess: els.cfgFullAccess.checked,
+    fiveHourLimit: Number(els.cfg5hLimit.value) || 0,
   });
   els.effort.value = els.cfgEffort.value;
   applyFullAccessUI(els.cfgFullAccess.checked);

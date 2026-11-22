@@ -6,6 +6,7 @@ const tools = require('../tools');
 const { getSettings } = require('../settings');
 const usage = require('../usage');
 const history = require('../history');
+const fiveHour = require('../fiveHour');
 
 const API_URL = 'https://chatgpt.com/backend-api/codex/responses';
 const MODELS_URL = 'https://chatgpt.com/backend-api/codex/models';
@@ -220,6 +221,9 @@ function register() {
   ipcMain.handle('codex-api:list-models', listModels);
 
   ipcMain.handle('codex-api:stream-request', async (event, payload = {}) => {
+    // Contador local de 5h: alimentado por Chat e Codex
+    fiveHour.record();
+
     // Demo: resposta falsa + demonstração de ferramenta
     if (auth.DEMO) {
       const userText = (payload.input || []).filter((m) => m.role === 'user').map((m) => m.content).join(' ');

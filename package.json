@@ -8,7 +8,7 @@
     "start": "electron .",
     "demo": "set CODEX_DEMO_MODE=1&& electron .",
     "check": "node --check src/main/index.js && node --check src/main/codexAuth.js && node --check src/main/preload.js && node --check src/main/ipc/codexAuth.js && node --check src/main/ipc/codexApi.js && node --check src/renderer/renderer.js",
-    "test": "node test/mock-flow.js && node test/mock-api.js && node test/mock-tools.js && node test/mock-usage.js && node test/mock-conversations.js"
+    "test": "node test/mock-flow.js && node test/mock-api.js && node test/mock-tools.js && node test/mock-usage.js && node test/mock-conversations.js && node test/mock-fivehour.js"
   },
   "devDependencies": {
     "electron": "^35.0.0"

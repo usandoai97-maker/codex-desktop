@@ -16,6 +16,7 @@ const DEFAULTS = {
   mode: 'chat',
   reasoningEffort: 'high',
   fullAccess: false,
+  fiveHourLimit: 0,
   mcpServers: [],
 };
 
