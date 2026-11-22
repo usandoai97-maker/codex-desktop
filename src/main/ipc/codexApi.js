@@ -15,7 +15,8 @@ const FALLBACK_MODELS = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-sol', 'gpt-5.5'];
 const ENABLE_TOOLS = process.env.CODEX_ENABLE_TOOLS !== '0';
 
 const CHAT_PROMPT = 'Você é um assistente conversacional. Responda em português de forma clara e objetiva. Modo CHAT: não use ferramentas nem acesse a máquina.';
-const AGENT_PROMPT = 'Você é um agente local no Windows com acesso à máquina do usuário. Use as ferramentas disponíveis sempre que precisar: arquivos, pastas, PowerShell/cmd, processos, área de transferência, extração de áudio/vídeo e ferramentas MCP conectadas. Para tarefas do sistema prefira run_powershell. Respeite as confirmações de segurança. Responda em português e explique o que fez. REGRA IMPORTANTE: quando usar MCP, faça a descoberta UMA VEZ (list_roblox_studios, se preciso list_roblox_skills) e então AJA imediatamente com a ferramenta de execução (execute_luau ou equivalente). Nunca repita list_roblox_studios/list_roblox_skills/get_roblox_skill em loop — se já tem o studio_id e as skills, não os consulte de novo. REGRA DE REWORK/SUBSTITUIÇÃO: ao reformar, refazer ou substituir qualquer coisa no Roblox Studio, PRIMEIRO use search_game_tree para localizar os objetos antigos e DESTRUA-OS com execute_luau (instancia:Destroy()). Só depois crie a versão nova. Nunca deixe objetos antigos acumulados. Ao final, use search_game_tree novamente para confirmar que o antigo sumiu e relat o que foi removido.';
+// Prompt enxuto (mesmas regras, menos tokens por requisição/rodada).
+const AGENT_PROMPT = 'Agente local Windows. Use ferramentas: arquivos, PowerShell, processos, extração e MCP. Prefira run_powershell. Responda em português. MCP: descoberta UMA VEZ (list_roblox_studios/skills), depois aja com execute_luau — nunca repita descoberta. Rework: search_game_tree → Destroy antigos → criar novo → verificar.';
 
 function emit(event, type, data) {
   event.sender.send('codex-api:stream-chunk', { type, ...data });
@@ -335,7 +336,7 @@ function register() {
         input.push({
           type: 'function_call_output',
           call_id: call.call_id,
-          output: JSON.stringify(outcome),
+          output: compactOutcome(outcome),
         });
       }
     }
@@ -348,6 +349,13 @@ function register() {
 function clipForEvent(outcome) {
   const s = outcome.ok ? JSON.stringify(outcome.result) : String(outcome.error);
   return s.length > 600 ? s.slice(0, 600) + '…' : s;
+}
+
+/** Limita o retorno das ferramentas antes de voltar ao modelo (evita estourar contexto). */
+function compactOutcome(outcome) {
+  const max = 20000;
+  const s = JSON.stringify(outcome);
+  return s.length > max ? s.slice(0, max) + '"}]}…[TRUNCADO]' : s;
 }
 
 module.exports = { register, listModels, streamRound };

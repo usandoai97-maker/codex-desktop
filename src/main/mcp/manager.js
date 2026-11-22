@@ -86,17 +86,37 @@ function status() {
   }));
 }
 
+/** Remove metadados e encurta descrições dos schemas (mantém type/properties/required). */
+function compactSchema(schema) {
+  if (!schema || typeof schema !== 'object') return { type: 'object', properties: {} };
+  const props = {};
+  for (const [key, value] of Object.entries(schema.properties || {})) {
+    if (!value || typeof value !== 'object') continue;
+    const p = { type: value.type || 'string' };
+    if (value.description) p.description = String(value.description).slice(0, 160);
+    if (Array.isArray(value.enum)) p.enum = value.enum;
+    if (value.items && typeof value.items === 'object') p.items = { type: value.items.type || 'string' };
+    props[key] = p;
+  }
+  return {
+    type: 'object',
+    properties: props,
+    required: Array.isArray(schema.required) ? schema.required : [],
+  };
+}
+
 /** Ferramentas MCP no formato de function tool da Responses API. */
 function definitions() {
   const defs = [];
   for (const [id, conn] of connections) {
     if (conn.status !== 'connected') continue;
     for (const t of conn.tools) {
+      const desc = String(t.description || t.name);
       defs.push({
         type: 'function',
         name: prefix(id, t.name),
-        description: `[MCP:${conn.name}] ${t.description || t.name}`,
-        parameters: t.inputSchema || { type: 'object', properties: {} },
+        description: `[MCP:${conn.name}] ${desc.slice(0, 300)}`,
+        parameters: compactSchema(t.inputSchema),
       });
     }
   }

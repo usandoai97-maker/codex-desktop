@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.0] - 2026-11-22
+
+### Changed
+
+- Token/cost optimizations without reducing capabilities:
+  - system prompt compacted to the same rules in far fewer tokens;
+  - MCP tool schemas stripped of metadata with shortened descriptions
+    (types, properties and required fields preserved);
+  - tool results capped at 20k characters before being fed back into the loop.
+- All tools and rules remain available; this only reduces repeated payload size.
+
 ## [1.5.0] - 2026-11-22
 
 ### Changed

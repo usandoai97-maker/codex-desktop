@@ -129,8 +129,9 @@ const eventos = [];
   assert.equal(capturedFetch.options.headers['Chatgpt-Account-Id'], 'conta-api');
 
   const body = JSON.parse(capturedFetch.options.body);
-  assert.ok(body.instructions.includes('agente local'));
+  assert.ok(/agente local/i.test(body.instructions));
   assert.ok(!body.instructions.includes('Seja direto.'));
+  assert.ok(body.instructions.length < 400, 'prompt do sistema deve ser enxuto');
   assert.deepEqual(body.input, [{ type: 'message', role: 'user', content: 'Oi' }]);
   assert.equal(body.stream, true);
   assert.equal(body.store, false);
