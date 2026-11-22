@@ -82,6 +82,10 @@ npm test
 Five mock-based suites cover the OAuth flow, proxy/tool loop, local tools, usage
 endpoint and conversation persistence. No real account or network access required.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 Educational use only. Not affiliated with OpenAI.
