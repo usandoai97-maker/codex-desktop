@@ -45,6 +45,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     rename: (id, title) => ipcRenderer.invoke('conv:rename', { id, title }),
     remove: (id) => ipcRenderer.invoke('conv:remove', id),
   },
+  plugins: {
+    list: () => ipcRenderer.invoke('plugins:list'),
+    active: () => ipcRenderer.invoke('plugins:active'),
+    activate: (id) => ipcRenderer.invoke('plugins:activate', id),
+    run: (id, task) => ipcRenderer.invoke('plugins:run', { id, task }),
+  },
   usage: {
     get: () => ipcRenderer.invoke('usage:get'),
     cached: () => ipcRenderer.invoke('usage:cached'),

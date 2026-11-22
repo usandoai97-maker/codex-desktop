@@ -19,6 +19,7 @@ const DEFAULTS = {
   fiveHourLimit: 0,
   fiveHourTokenLimit: 0,
   reuseResponses: true,
+  activePlugin: '',
   mcpServers: [],
 };
 

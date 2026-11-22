@@ -8,6 +8,7 @@ const toolsIpc = require('./ipc/tools');
 const mcpIpc = require('./ipc/mcp');
 const usageIpc = require('./ipc/usage');
 const convIpc = require('./ipc/conversations');
+const pluginsIpc = require('./ipc/plugins');
 const mcp = require('./mcp/manager');
 const permissions = require('./permissions');
 
@@ -58,6 +59,7 @@ function buildMenu() {
       submenu: [
         { label: 'Ver ferramentas', click: () => sendAction('view-tools') },
         { label: 'Histórico de execuções', click: () => sendAction('view-history') },
+        { label: 'Plugins…', click: () => sendAction('view-plugins') },
         { label: 'Uso e limites', click: () => sendAction('view-usage') },
         { label: 'Servidores MCP…', click: () => sendAction('view-mcp') },
         { label: 'Configurações', click: () => sendAction('view-settings') },
@@ -102,6 +104,7 @@ app.whenReady().then(() => {
   mcpIpc.register();
   usageIpc.register();
   convIpc.register();
+  pluginsIpc.register();
   permissions.register();
   mcp.refresh().catch((err) => console.error('[mcp] refresh inicial falhou:', err.message));
   buildMenu();

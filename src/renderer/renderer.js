@@ -29,6 +29,10 @@ const els = {
   mcpName: $('mcpName'), mcpCommand: $('mcpCommand'), mcpArgs: $('mcpArgs'),
   mcpCwd: $('mcpCwd'), addMcpBtn: $('addMcpBtn'), mcpMsg: $('mcpMsg'),
   mcpStatus: $('mcpStatus'), refreshMcp: $('refreshMcp'),
+  pluginsGrid: $('pluginsGrid'), activePluginLabel: $('activePluginLabel'),
+  pluginRunner: $('pluginRunner'), pluginRunnerTitle: $('pluginRunnerTitle'),
+  pluginRunnerDesc: $('pluginRunnerDesc'), pluginTask: $('pluginTask'),
+  pluginRunBtn: $('pluginRunBtn'), pluginOutput: $('pluginOutput'),
   conversationsList: $('conversationsList'), newConvBtn: $('newConvBtn'),
   sidebarConversations: $('sidebarConversations'), crumb: $('crumb'),
   sbMode: $('sbMode'), sbModel: $('sbModel'), sbEffort: $('sbEffort'),
@@ -465,6 +469,95 @@ async function saveMessages(messages) {
   await window.electronAPI.conversations.append(activeConvId, messages);
 }
 
+/* ---------------- plugins ---------------- */
+
+let pluginCache = [];
+
+async function loadPlugins() {
+  const [list, active] = await Promise.all([
+    window.electronAPI.plugins.list(),
+    window.electronAPI.plugins.active(),
+  ]);
+  pluginCache = list || [];
+  els.activePluginLabel.textContent = active
+    ? 'ativo: ' + (pluginCache.find((p) => p.id === active)?.name || active)
+    : 'nenhum ativo';
+
+  els.pluginsGrid.innerHTML = '';
+  for (const p of pluginCache) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const pipeline = p.pipeline?.length
+      ? `<div class="tag">pipeline: ${esc(p.pipeline.map((s) => s.name).join(' → '))}</div>` : '';
+    card.innerHTML = `<h3>${p.icon} ${esc(p.name)}</h3>
+      <p>${esc(p.description)}</p>
+      <span class="tag">${esc(p.category)}</span><span class="tag">v${esc(p.version)}</span>
+      ${pipeline}
+      <div class="conv-actions">
+        <button class="btn ghost small" data-plugin-activate="${p.id}">Ativar no chat</button>
+        ${p.pipeline?.length ? `<button class="btn primary small" data-plugin-run="${p.id}">Executar</button>` : ''}
+      </div>`;
+    els.pluginsGrid.appendChild(card);
+  }
+
+  els.pluginsGrid.querySelectorAll('[data-plugin-activate]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const r = await window.electronAPI.plugins.activate(b.dataset.pluginActivate);
+      if (r.ok) { logActivity(`🧩 Plugin ativo: ${r.name}`); loadPlugins(); }
+    }));
+  els.pluginsGrid.querySelectorAll('[data-plugin-run]').forEach((b) =>
+    b.addEventListener('click', () => openPluginRunner(b.dataset.pluginRun)));
+}
+
+function openPluginRunner(id) {
+  const p = pluginCache.find((x) => x.id === id);
+  if (!p) return;
+  els.pluginRunner.hidden = false;
+  els.pluginRunnerTitle.textContent = `${p.icon} ${p.name}`;
+  els.pluginRunnerDesc.textContent = p.description;
+  els.pluginRunBtn.dataset.plugin = id;
+  els.pluginOutput.textContent = '';
+  els.pluginTask.focus();
+  els.pluginRunner.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function runPlugin() {
+  const id = els.pluginRunBtn.dataset.plugin;
+  const task = els.pluginTask.value.trim();
+  if (!id || !task) return;
+  els.pluginRunBtn.disabled = true;
+  els.pluginOutput.textContent = 'Executando pipeline…';
+
+  let buffer = '';
+  const unsubscribe = window.electronAPI.codexApi.onStreamChunk((chunk) => {
+    if (chunk.type === 'plugin-stage') {
+      buffer += `\n\n── ${chunk.name} ──\n`;
+      els.pluginOutput.textContent = buffer;
+      logActivity(`🧩 ${chunk.name} iniciou`);
+    } else if (chunk.type === 'text') {
+      buffer += chunk.delta || '';
+      els.pluginOutput.textContent = buffer;
+      els.pluginOutput.scrollTop = els.pluginOutput.scrollHeight;
+    }
+  });
+
+  try {
+    const result = await window.electronAPI.plugins.run(id, task);
+    if (result.error) {
+      els.pluginOutput.textContent += `\n\nERRO: ${result.message}`;
+    } else {
+      for (const out of result.outputs || []) {
+        logActivity(`✅ ${out.name} concluiu (${out.tokens || 0} tokens)`);
+      }
+    }
+  } catch (err) {
+    els.pluginOutput.textContent += `\n\nERRO: ${err.message}`;
+  } finally {
+    unsubscribe();
+    els.pluginRunBtn.disabled = false;
+  }
+}
+
 /* ---------------- chat com tool-calling ---------------- */
 
 async function send() {
@@ -704,6 +797,7 @@ document.querySelectorAll('.side-action').forEach((b) => b.addEventListener('cli
   if (b.dataset.view === 'usage') loadUsage();
   if (b.dataset.view === 'history') loadHistory();
   if (b.dataset.view === 'conversations') loadConversations();
+  if (b.dataset.view === 'plugins') loadPlugins();
 }));
 els.modeSwitch.querySelectorAll('button').forEach((b) =>
   b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -740,6 +834,7 @@ els.refreshSystem.addEventListener('click', loadSystem);
 els.runCommandBtn.addEventListener('click', runCommandFromForm);
 els.refreshHistory.addEventListener('click', loadHistory);
 els.newConvBtn.addEventListener('click', createConversation);
+els.pluginRunBtn.addEventListener('click', runPlugin);
 els.fullAccessBtn.addEventListener('click', toggleFullAccess);
 els.confirmOk.addEventListener('click', () => answerConfirm(true));
 els.confirmCancel.addEventListener('click', () => answerConfirm(false));
@@ -757,6 +852,7 @@ window.electronAPI.onMenuAction?.((action) => {
   const map = {
     'new-chat': () => createConversation(),
     'view-conversations': () => { setView('conversations'); loadConversations(); },
+    'view-plugins': () => { setView('plugins'); loadPlugins(); },
     'choose-folder': async () => { const d = await window.electronAPI.settings.chooseFolder(); if (d) { await loadSettings(); } },
     'view-tools': () => { setView('tools'); loadTools(); },
     'view-mcp': () => { setView('mcp'); loadMcp(); },
@@ -782,6 +878,7 @@ window.electronAPI.onMenuAction?.((action) => {
   await loadTools();
   await loadMcp();
   await loadConversations();
+  await loadPlugins();
 
   const active = await window.electronAPI.conversations.active();
   if (active) {

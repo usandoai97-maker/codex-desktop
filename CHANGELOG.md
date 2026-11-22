@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.0] - 2026-11-22
+
+### Added
+
+- **Plugins tab** with 8 plugins:
+  - **Codex GUI** — two-agent pipeline: a Designer generates GUI/3D assets with
+    Roblox generation tools, then a Developer implements them with Luau.
+  - Code Reviewer, Lua Tester, Perf Audit, Asset Hunter, Data Architect,
+    Docs Explainer and Media Extractor.
+- Simple plugins act as specialized prompts when activated in chat; pipeline
+  plugins can be executed with a task and stream each agent's output.
+- Pipeline stages receive only their allowlisted tools, which also saves tokens.
+
 ## [1.7.0] - 2026-11-22
 
 ### Added / Optimized

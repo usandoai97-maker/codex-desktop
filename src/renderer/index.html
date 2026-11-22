@@ -46,6 +46,7 @@
       <button class="side-action active" data-view="chat"><span>💬</span> Chat</button>
       <button class="side-action" data-view="conversations"><span>🗂️</span> Conversas</button>
       <button class="side-action" data-view="tools"><span>🛠️</span> Ferramentas</button>
+      <button class="side-action" data-view="plugins"><span>🧩</span> Plugins</button>
       <button class="side-action" data-view="mcp"><span>🔌</span> MCP</button>
       <button class="side-action" data-view="extract"><span>🎬</span> Extrair</button>
       <button class="side-action" data-view="system"><span>🖥️</span> Sistema</button>
@@ -135,6 +136,23 @@
           <button id="toolRunBtn" class="btn primary">Executar</button>
         </div>
         <pre id="toolOutput" class="output"></pre>
+      </div>
+    </section>
+
+    <!-- PLUGINS -->
+    <section id="view-plugins" class="view">
+      <div class="view-head"><div><h1>Plugins</h1>
+        <p class="sub">Prompts especializados e pipelines multi-agente.</p></div>
+        <span id="activePluginLabel" class="tag">nenhum ativo</span></div>
+      <div id="pluginsGrid" class="grid"></div>
+      <div id="pluginRunner" class="panel" hidden>
+        <h2 id="pluginRunnerTitle">Executar plugin</h2>
+        <p id="pluginRunnerDesc" class="sub"></p>
+        <div class="row">
+          <input id="pluginTask" type="text" placeholder="Descreva a tarefa…" />
+          <button id="pluginRunBtn" class="btn primary">Executar</button>
+        </div>
+        <pre id="pluginOutput" class="output"></pre>
       </div>
     </section>
 

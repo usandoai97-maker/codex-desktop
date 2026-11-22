@@ -7,6 +7,7 @@ const { getSettings } = require('../settings');
 const usage = require('../usage');
 const history = require('../history');
 const fiveHour = require('../fiveHour');
+const plugins = require('../plugins');
 
 const API_URL = 'https://chatgpt.com/backend-api/codex/responses';
 const MODELS_URL = 'https://chatgpt.com/backend-api/codex/models';
@@ -84,7 +85,7 @@ async function listModels() {
 /* ---------------- Uma rodada de stream ---------------- */
 
 async function streamRound({ input, model, tokenResult, event, withTools, effort, withReasoning = true,
-  previousResponseId = null, store = false, reuse = false }) {
+  previousResponseId = null, store = false, reuse = false, toolAllow = null }) {
   let instructions = '';
   const normalizedInput = [];
   for (const item of input || []) {
@@ -104,7 +105,10 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
     body.previous_response_id = previousResponseId;
   } else {
     body.instructions = instructions;
-    if (withTools && ENABLE_TOOLS) body.tools = tools.definitions();
+    if (withTools && ENABLE_TOOLS) {
+      const defs = tools.definitions();
+      body.tools = toolAllow ? defs.filter((d) => toolAllow.test(d.name)) : defs;
+    }
     if (withReasoning && effort && effort !== 'auto') body.reasoning = { effort, summary: 'auto' };
   }
 
@@ -281,7 +285,11 @@ function register() {
     const input = (payload.input || [])
       .filter((item) => item.role !== 'system')
       .map((item) => ({ ...item }));
-    input.unshift({ role: 'system', content: isCodex ? AGENT_PROMPT : CHAT_PROMPT });
+    const pluginPrompt = plugins.systemPrompt(plugins.get(settings.activePlugin));
+    input.unshift({
+      role: 'system',
+      content: (isCodex ? AGENT_PROMPT : CHAT_PROMPT) + (pluginPrompt ? '\n\n' + pluginPrompt : ''),
+    });
 
     const preview = (payload.input || [])
       .filter((item) => item.role === 'user')

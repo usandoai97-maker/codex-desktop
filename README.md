@@ -25,7 +25,9 @@ through the Codex backend — no separate API key.
   window on Free accounts), with graceful HTTP 429 handling.
 - **Saved conversations** and a unified activity history that survive restarts.
 - **Video extraction** panel: audio, frames, contact sheets and Whisper transcription.
-- Native menu and a sidebar with 9 panels.
+- **8 plugins** in a dedicated tab, including **Codex GUI**: a Designer agent
+  creates GUI/3D assets, then a Developer agent writes the Luau code.
+- Native menu and a sidebar with 10 panels.
 
 ## Install (Windows)
 
