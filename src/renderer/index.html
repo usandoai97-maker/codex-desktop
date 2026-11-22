@@ -9,6 +9,18 @@
 </head>
 <body>
 
+<!-- Confirmação interna (evita o confirm() nativo que rouba o foco) -->
+<div id="confirmModal" class="modal" hidden>
+  <div class="modal-box">
+    <h2 id="confirmTitle">Confirmação</h2>
+    <p id="confirmText"></p>
+    <div class="modal-actions">
+      <button id="confirmCancel" class="btn ghost">Cancelar</button>
+      <button id="confirmOk" class="btn danger">Ativar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de permissão para ações sensíveis -->
 <div id="permissionModal" class="modal" hidden>
   <div class="modal-box">

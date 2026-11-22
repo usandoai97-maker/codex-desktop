@@ -22,6 +22,8 @@ const els = {
   cfgPickDir: $('cfgPickDir'), saveSettings: $('saveSettings'), settingsMsg: $('settingsMsg'),
   permissionModal: $('permissionModal'), permissionInfo: $('permissionInfo'),
   permAllow: $('permAllow'), permDeny: $('permDeny'),
+  confirmModal: $('confirmModal'), confirmTitle: $('confirmTitle'),
+  confirmText: $('confirmText'), confirmOk: $('confirmOk'), confirmCancel: $('confirmCancel'),
   modeSwitch: $('modeSwitch'),
   mcpName: $('mcpName'), mcpCommand: $('mcpCommand'), mcpArgs: $('mcpArgs'),
   mcpCwd: $('mcpCwd'), addMcpBtn: $('addMcpBtn'), mcpMsg: $('mcpMsg'),
@@ -82,6 +84,25 @@ function applyModeUI(mode) {
     : 'MODO CHAT — conversa sem acesso à máquina. Mude para Codex para usar ferramentas.';
 }
 
+let confirmResolve = null;
+
+function askConfirm(title, text) {
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+    els.confirmTitle.textContent = title;
+    els.confirmText.textContent = text;
+    els.confirmModal.hidden = false;
+  });
+}
+
+function answerConfirm(value) {
+  els.confirmModal.hidden = true;
+  const resolve = confirmResolve;
+  confirmResolve = null;
+  if (resolve) resolve(value);
+  els.prompt.focus();
+}
+
 function applyFullAccessUI(enabled) {
   fullAccess = !!enabled;
   els.fullAccessBtn.textContent = fullAccess ? '🔓 Full: ON' : '🔒 Full: OFF';
@@ -99,12 +120,16 @@ function applyFullAccessUI(enabled) {
 async function toggleFullAccess() {
   const next = !fullAccess;
   if (next) {
-    const ok = confirm('FULL ACCESS: o agente não pedirá permissão para executar comandos, escrever/excluir arquivos, matar processos etc.\n\nUse apenas se você confia nas instruções que vai dar. Ativar?');
+    const ok = await askConfirm(
+      'Ativar Full Access?',
+      'O agente não pedirá permissão para executar comandos, escrever/excluir arquivos, matar processos etc. Use apenas se você confia nas instruções que vai dar.'
+    );
     if (!ok) return;
   }
   applyFullAccessUI(next);
   await window.electronAPI.settings.set({ fullAccess: next });
   logActivity(`Full Access: ${next ? 'ATIVADO (sem confirmações)' : 'desativado'}`);
+  els.prompt.focus();
 }
 
 async function setMode(mode) {
@@ -112,6 +137,7 @@ async function setMode(mode) {
   await window.electronAPI.settings.set({ mode });
   logActivity(`Modo alterado para ${mode.toUpperCase()}`);
   if (mode === 'codex') await loadTools();
+  els.prompt.focus();
 }
 
 /* ---------------- MCP ---------------- */
@@ -651,6 +677,8 @@ els.runCommandBtn.addEventListener('click', runCommandFromForm);
 els.refreshHistory.addEventListener('click', loadHistory);
 els.newConvBtn.addEventListener('click', createConversation);
 els.fullAccessBtn.addEventListener('click', toggleFullAccess);
+els.confirmOk.addEventListener('click', () => answerConfirm(true));
+els.confirmCancel.addEventListener('click', () => answerConfirm(false));
 els.clearHistory.addEventListener('click', async () => {
   await window.electronAPI.tools.clearHistory();
   await loadHistory();
