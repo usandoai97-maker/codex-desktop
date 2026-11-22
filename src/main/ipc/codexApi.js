@@ -140,6 +140,7 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   const calls = new Map();
+  const nameById = new Map();
   let buffer = '';
   let text = '';
 
@@ -164,29 +165,38 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
 
       const ev = data.type || '';
 
+      const captureItem = (item) => {
+        if (!item || item.type !== 'function_call') return;
+        const ids = [item.call_id, item.id, item.item_id].filter(Boolean);
+        for (const id of ids) if (item.name) nameById.set(id, item.name);
+        const callId = item.call_id || item.id || item.item_id;
+        if (!callId) return;
+        const prev = calls.get(callId) || { name: '', args: '' };
+        prev.name = item.name || prev.name;
+        if (item.arguments) prev.args = item.arguments;
+        calls.set(callId, { ...prev, done: true });
+      };
+
       if (ev === 'response.output_text.delta' || ev === 'response.text.delta') {
         const delta = data.delta || '';
         text += delta;
         emit(event, 'text', { delta });
+      } else if (ev === 'response.output_item.added' || ev === 'response.output_item.done') {
+        captureItem(data.item);
       } else if (ev === 'response.function_call_arguments.delta') {
         const callId = data.call_id || data.item_id || 'call';
-        const prev = calls.get(callId) || { name: data.name || '', args: '' };
+        if (data.name) nameById.set(callId, data.name);
+        const prev = calls.get(callId) || { name: nameById.get(callId) || '', args: '' };
         prev.args += data.delta || '';
         if (data.name) prev.name = data.name;
         calls.set(callId, prev);
       } else if (ev === 'response.function_call_arguments.done') {
         const callId = data.call_id || data.item_id || 'call';
-        const prev = calls.get(callId) || { name: data.name || '', args: '' };
+        if (data.name) nameById.set(callId, data.name);
+        const prev = calls.get(callId) || { name: nameById.get(callId) || '', args: '' };
         calls.set(callId, {
-          name: data.name || prev.name,
+          name: data.name || prev.name || nameById.get(callId) || '',
           args: data.arguments || prev.args,
-          done: true,
-        });
-      } else if (ev === 'response.output_item.done' && data.item?.type === 'function_call') {
-        const item = data.item;
-        calls.set(item.call_id || 'call', {
-          name: item.name,
-          args: item.arguments || '',
           done: true,
         });
       }
@@ -195,9 +205,13 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
     }
   }
 
-  return { error: false, text, calls: Array.from(calls.entries()).map(([call_id, c]) => ({
-    call_id, name: c.name, arguments: c.args,
-  })) };
+  // Nome nunca pode chegar vazio ao backend (o Responses API rejeita string vazia).
+  const finalCalls = Array.from(calls.entries()).map(([call_id, c]) => ({
+    call_id: call_id || 'call',
+    name: c.name || nameById.get(call_id) || 'unknown_tool',
+    arguments: c.args || '{}',
+  }));
+  return { error: false, text, calls: finalCalls };
 }
 
 /* ---------------- Registro de handlers ---------------- */
@@ -289,14 +303,15 @@ function register() {
       for (const call of result.calls) {
         let args = {};
         try { args = JSON.parse(call.arguments || '{}'); } catch { /* args vazios */ }
-        emit(event, 'tool-call', { name: call.name, args, call_id: call.call_id });
-        const outcome = await tools.invoke(call.name, args);
-        emit(event, 'tool-result', { name: call.name, call_id: call.call_id, ok: outcome.ok,
+        const toolName = call.name || 'unknown_tool';
+        emit(event, 'tool-call', { name: toolName, args, call_id: call.call_id });
+        const outcome = await tools.invoke(toolName, args);
+        emit(event, 'tool-result', { name: toolName, call_id: call.call_id, ok: outcome.ok,
           summary: clipForEvent(outcome) });
         input.push({
           type: 'function_call',
-          call_id: call.call_id,
-          name: call.name,
+          call_id: call.call_id || 'call',
+          name: toolName,
           arguments: call.arguments || '{}',
         });
         input.push({

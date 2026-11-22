@@ -181,6 +181,41 @@ const eventos = [];
   assert.equal(rl.primary.leftPercent, 4);
   console.log('✓ 429 gera evento rate-limit com % e tempo de renovação');
 
+  // Nome da ferramenta vem em output_item.added (não só em arguments.done)
+  const { streamRound } = require('../src/main/ipc/codexApi');
+  const sseChunks = (lines) => ({
+    ok: true, status: 200, headers: { get: () => null },
+    body: { getReader: () => {
+      let i = 0;
+      return { read: async () => i >= lines.length
+        ? { done: true, value: undefined }
+        : { done: false, value: Buffer.from(lines[i++] + '\n\n') } };
+    } },
+  });
+  global.fetch = async () => sseChunks([
+    'data: {"type":"response.output_item.added","item":{"type":"function_call","call_id":"c1","name":"get_system_info"}}',
+    'data: {"type":"response.function_call_arguments.done","call_id":"c1","arguments":"{}"}',
+    'data: [DONE]',
+  ]);
+  const parsed = await streamRound({
+    input: [], model: 'x', tokenResult: { access_token: 't', account_id: 'a' },
+    event: fakeEvent, withTools: false,
+  });
+  assert.equal(parsed.calls.length, 1);
+  assert.equal(parsed.calls[0].name, 'get_system_info');
+  console.log('✓ nome da ferramenta capturado de output_item.added');
+
+  global.fetch = async () => sseChunks([
+    'data: {"type":"response.function_call_arguments.done","call_id":"c2","arguments":"{}"}',
+    'data: [DONE]',
+  ]);
+  const parsed2 = await streamRound({
+    input: [], model: 'x', tokenResult: { access_token: 't', account_id: 'a' },
+    event: fakeEvent, withTools: false,
+  });
+  assert.equal(parsed2.calls[0].name, 'unknown_tool');
+  console.log('✓ nome vazio substituído por placeholder (evita 400)');
+
   const history = require('../src/main/history');
   const chats = history.list().filter((e) => e.type === 'chat');
   assert.ok(chats.length >= 4, 'cada mensagem deve gerar entrada no histórico');
