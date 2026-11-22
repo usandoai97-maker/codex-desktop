@@ -15,6 +15,7 @@ const DEFAULTS = {
   theme: 'dark',
   mode: 'chat',
   reasoningEffort: 'high',
+  fullAccess: false,
   mcpServers: [],
 };
 

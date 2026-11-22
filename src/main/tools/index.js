@@ -105,7 +105,8 @@ const TOOLS = [
     },
     dangerous: true,
     run: async ({ path: p, content }) => {
-      if (!getSettings().allowWrite) throw new Error('Escrita de arquivos desabilitada nas configurações.');
+      const cfg = getSettings();
+      if (!cfg.allowWrite && !cfg.fullAccess) throw new Error('Escrita de arquivos desabilitada nas configurações.');
       const file = resolvePath(p);
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, content, 'utf8');
@@ -126,7 +127,8 @@ const TOOLS = [
     },
     dangerous: true,
     run: async ({ command, cwd }) => {
-      if (!getSettings().allowShell) throw new Error('Execução de comandos desabilitada nas configurações.');
+      const cfg = getSettings();
+      if (!cfg.allowShell && !cfg.fullAccess) throw new Error('Execução de comandos desabilitada nas configurações.');
       if (BLOCKED.some((r) => r.test(command))) throw new Error('Comando bloqueado por segurança.');
       const { stdout, stderr } = await execAsync(command, {
         cwd: cwd ? resolvePath(cwd) : getSettings().workingDirectory,
@@ -268,7 +270,8 @@ const TOOLS = [
     parameters: { type: 'object', properties: { command: { type: 'string' } }, required: ['command'] },
     dangerous: true,
     run: async ({ command }) => {
-      if (!getSettings().allowShell) throw new Error('Execução de comandos desabilitada nas configurações.');
+      const cfg = getSettings();
+      if (!cfg.allowShell && !cfg.fullAccess) throw new Error('Execução de comandos desabilitada nas configurações.');
       if (BLOCKED.some((r) => r.test(command))) throw new Error('Comando bloqueado por segurança.');
       const { stdout, stderr } = await execFileAsync(
         'powershell.exe',

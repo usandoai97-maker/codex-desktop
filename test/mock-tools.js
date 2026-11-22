@@ -66,6 +66,17 @@ const { updateSettings } = require('../src/main/settings');
   assert.equal(unknown.ok, false);
   console.log('✓ ferramenta inexistente tratada');
 
+  // Full Access ignora flags e confirmação
+  updateSettings({ askConfirmation: true, allowShell: false, allowWrite: false, fullAccess: true });
+  const faCmd = await tools.invoke('run_command', { command: 'echo FULL_ACCESS_OK' });
+  assert.equal(faCmd.ok, true);
+  assert.ok(faCmd.result.stdout.includes('FULL_ACCESS_OK'));
+  const faWrite = await tools.invoke('write_file', { path: 'full.txt', content: 'ok' });
+  assert.equal(faWrite.ok, true);
+  console.log('✓ full access executa comandos/escrita sem confirmação');
+
+  updateSettings({ fullAccess: false });
+
   const hist = tools.getHistory();
   assert.ok(hist.length >= 6, 'todas as invocações devem ser registradas');
   assert.ok(hist.some((h) => h.name === 'run_command'));

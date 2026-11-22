@@ -8,7 +8,9 @@ let counter = 0;
 
 /** Main → Renderer: pede autorização ao usuário e espera a resposta. */
 function requestPermission(toolName, args, reason) {
-  if (!getSettings().askConfirmation) return Promise.resolve(true);
+  const settings = getSettings();
+  // Modo FULL ACCESS: nenhuma confirmação, nenhuma janela, nenhum bloqueio por flag.
+  if (settings.fullAccess || !settings.askConfirmation) return Promise.resolve(true);
 
   return new Promise((resolve) => {
     const id = `perm-${++counter}`;

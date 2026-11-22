@@ -77,6 +77,7 @@
             <option value="high" selected>HIGH</option>
             <option value="xhigh">MAX</option>
           </select>
+          <button id="fullAccessBtn" class="btn ghost small full-off" title="Desativa todas as confirmações no modo Codex">🔒 Full: OFF</button>
         </div>
       </div>
       <div id="loginGate" class="gate" hidden>
@@ -216,6 +217,7 @@
         <label class="check"><input id="cfgAllowShell" type="checkbox" /> Permitir execução de comandos</label>
         <label class="check"><input id="cfgAllowWrite" type="checkbox" /> Permitir escrita de arquivos</label>
         <label class="check"><input id="cfgAskConfirm" type="checkbox" /> Pedir confirmação para ações sensíveis</label>
+        <label class="check"><input id="cfgFullAccess" type="checkbox" /> 🔓 Full Access — não pedir permissão para nada (por sua conta e risco)</label>
         <div class="row compact">
           <label for="cfgPython">Python:</label><input id="cfgPython" type="text" value="python" />
           <label for="cfgRounds">Máx. rodadas de ferramentas:</label><input id="cfgRounds" class="w70" type="number" min="1" max="10" value="5" />

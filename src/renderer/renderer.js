@@ -6,6 +6,7 @@ const els = {
   statusText: $('statusText'), loginBtn: $('loginBtn'), logoutBtn: $('logoutBtn'),
   loginBtn2: $('loginBtn2'), authError: $('authError'), loginGate: $('loginGate'),
   model: $('model'), reloadModelsBtn: $('reloadModelsBtn'), effort: $('effort'),
+  fullAccessBtn: $('fullAccessBtn'),
   messages: $('messages'), prompt: $('prompt'), sendBtn: $('sendBtn'), chatError: $('chatError'),
   activity: $('toolActivity'),
   toolsGrid: $('toolsGrid'), toolSelect: $('toolSelect'), toolArgs: $('toolArgs'),
@@ -17,7 +18,7 @@ const els = {
   historyList: $('historyList'), refreshHistory: $('refreshHistory'), clearHistory: $('clearHistory'),
   cfgWorkingDir: $('cfgWorkingDir'), cfgAllowShell: $('cfgAllowShell'), cfgAllowWrite: $('cfgAllowWrite'),
   cfgAskConfirm: $('cfgAskConfirm'), cfgPython: $('cfgPython'), cfgRounds: $('cfgRounds'),
-  cfgEffort: $('cfgEffort'),
+  cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'),
   cfgPickDir: $('cfgPickDir'), saveSettings: $('saveSettings'), settingsMsg: $('settingsMsg'),
   permissionModal: $('permissionModal'), permissionInfo: $('permissionInfo'),
   permAllow: $('permAllow'), permDeny: $('permDeny'),
@@ -37,6 +38,7 @@ let currentPermission = null;
 let toolCache = [];
 let currentMode = 'chat';
 let activeConvId = null;
+let fullAccess = false;
 
 /* ---------------- utilidades ---------------- */
 
@@ -78,6 +80,31 @@ function applyModeUI(mode) {
   if (sub) sub.textContent = mode === 'codex'
     ? 'MODO CODEX — acesso total: PowerShell, arquivos, pastas, processos e MCP.'
     : 'MODO CHAT — conversa sem acesso à máquina. Mude para Codex para usar ferramentas.';
+}
+
+function applyFullAccessUI(enabled) {
+  fullAccess = !!enabled;
+  els.fullAccessBtn.textContent = fullAccess ? '🔓 Full: ON' : '🔒 Full: OFF';
+  els.fullAccessBtn.classList.toggle('full-on', fullAccess);
+  els.fullAccessBtn.classList.toggle('full-off', !fullAccess);
+  if (els.cfgFullAccess) els.cfgFullAccess.checked = fullAccess;
+  const sub = document.querySelector('#view-chat .sub');
+  if (sub && currentMode === 'codex') {
+    sub.textContent = fullAccess
+      ? '⚡ MODO CODEX + 🔓 FULL ACCESS — sem pedir permissão para nada.'
+      : 'MODO CODEX — acesso total: PowerShell, arquivos, pastas, processos e MCP.';
+  }
+}
+
+async function toggleFullAccess() {
+  const next = !fullAccess;
+  if (next) {
+    const ok = confirm('FULL ACCESS: o agente não pedirá permissão para executar comandos, escrever/excluir arquivos, matar processos etc.\n\nUse apenas se você confia nas instruções que vai dar. Ativar?');
+    if (!ok) return;
+  }
+  applyFullAccessUI(next);
+  await window.electronAPI.settings.set({ fullAccess: next });
+  logActivity(`Full Access: ${next ? 'ATIVADO (sem confirmações)' : 'desativado'}`);
 }
 
 async function setMode(mode) {
@@ -546,6 +573,7 @@ async function loadSettings() {
   els.cfgRounds.value = s.maxToolRounds;
   els.cfgEffort.value = s.reasoningEffort || 'high';
   els.effort.value = els.cfgEffort.value;
+  applyFullAccessUI(s.fullAccess);
 }
 
 async function saveSettings() {
@@ -557,8 +585,10 @@ async function saveSettings() {
     pythonPath: els.cfgPython.value,
     maxToolRounds: Number(els.cfgRounds.value) || 5,
     reasoningEffort: els.cfgEffort.value,
+    fullAccess: els.cfgFullAccess.checked,
   });
   els.effort.value = els.cfgEffort.value;
+  applyFullAccessUI(els.cfgFullAccess.checked);
   els.settingsMsg.textContent = 'Configurações salvas.';
   setTimeout(() => { els.settingsMsg.textContent = ''; }, 2500);
 }
@@ -620,6 +650,7 @@ els.refreshSystem.addEventListener('click', loadSystem);
 els.runCommandBtn.addEventListener('click', runCommandFromForm);
 els.refreshHistory.addEventListener('click', loadHistory);
 els.newConvBtn.addEventListener('click', createConversation);
+els.fullAccessBtn.addEventListener('click', toggleFullAccess);
 els.clearHistory.addEventListener('click', async () => {
   await window.electronAPI.tools.clearHistory();
   await loadHistory();
@@ -654,6 +685,7 @@ window.electronAPI.onMenuAction?.((action) => {
 (async () => {
   const settings = await window.electronAPI.settings.get();
   applyModeUI(settings.mode || 'chat');
+  applyFullAccessUI(settings.fullAccess);
   await refreshStatus();
   await loadTools();
   await loadMcp();

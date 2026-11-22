@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-11-21
+
+### Added
+
+- **Full Access** mode for Codex: a toggle in the chat header and a setting that
+  disables every permission prompt. When enabled, dangerous tools (PowerShell/cmd,
+  file writes, deletes, process termination) run without confirmation and ignore
+  the `allowShell` / `allowWrite` flags. Use at your own risk.
+- Warning banner in the chat subtitle while Full Access is active.
+
 ## [1.0.1] - 2026-11-21
 
 ### Fixed

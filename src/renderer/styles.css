@@ -59,6 +59,8 @@ textarea { width: 100%; resize: vertical; }
 .btn.ghost { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
 .btn.danger { background: #6e2730; color: #ffdcd7; border: 1px solid #a33b46; }
 .btn.small { padding: 6px 10px; font-size: 12px; }
+.full-on { background: #6e2730 !important; color: #ffdcd7 !important; border-color: #a33b46 !important; }
+.full-off { color: #8b949e !important; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 .messages { height: 340px; overflow-y: auto; border: 1px solid #30363d; border-radius: 8px;
