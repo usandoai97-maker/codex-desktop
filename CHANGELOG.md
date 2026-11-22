@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.1] - 2026-11-22
+
+### Fixed
+
+- Response reuse is now **off by default** and globally disabled on the first
+  backend rejection — no more wasted fallback request on every tool round.
+- Deterministic tool-call dedup: identical name+arguments are not executed twice;
+  the agent receives the cached result with an instruction to move on. This
+  stops the `list_roblox_studios` loop.
+- Stronger prompts: the agent is told to act with tools immediately (no greetings)
+  and never repeat discovery calls; plugin prompts inherit the same directive.
+
 ## [1.8.0] - 2026-11-22
 
 ### Added

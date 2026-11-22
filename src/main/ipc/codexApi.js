@@ -15,9 +15,11 @@ const CLIENT_VERSION = process.env.CODEX_CLIENT_VERSION || '0.164.0';
 const FALLBACK_MODELS = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-sol', 'gpt-5.5'];
 const ENABLE_TOOLS = process.env.CODEX_ENABLE_TOOLS !== '0';
 
+let reuseGloballyDisabled = false;
+
 const CHAT_PROMPT = 'Você é um assistente conversacional. Responda em português de forma clara e objetiva. Modo CHAT: não use ferramentas nem acesse a máquina.';
 // Prompt enxuto (mesmas regras, menos tokens por requisição/rodada).
-const AGENT_PROMPT = 'Agente local Windows. Use ferramentas: arquivos, PowerShell, processos, extração e MCP. Prefira run_powershell. Responda em português. MCP: descoberta UMA VEZ (list_roblox_studios/skills), depois aja com execute_luau — nunca repita descoberta. Rework: search_game_tree → Destroy antigos → criar novo → verificar.';
+const AGENT_PROMPT = 'Agente local Windows. Ao receber uma tarefa, EXECUTE com ferramentas — não responda só com saudação ou explicação. Prefira run_powershell. Responda em português. REGRA CRÍTICA: chame list_roblox_studios NO MÁXIMO UMA VEZ por conversa; se já tem o studio_id, USE-O. Nunca repita list_roblox_studios/list_roblox_skills/get_roblox_skill. Nunca repita uma chamada com os mesmos argumentos. Rework: search_game_tree → Destroy antigos → criar → verificar.';
 
 function emit(event, type, data) {
   event.sender.send('codex-api:stream-chunk', { type, ...data });
@@ -314,11 +316,13 @@ function register() {
     };
 
     let totalText = '';
+    const seenCalls = new Map();
     let previousResponseId = null;
     let followupItems = [];
 
     for (let round = 0; round <= maxRounds; round++) {
-      const reuse = round > 0 && !!previousResponseId && settings.reuseResponses !== false;
+      const reuse = round > 0 && !!previousResponseId
+        && settings.reuseResponses !== false && !reuseGloballyDisabled;
       let result;
       try {
         result = await streamRound({
@@ -332,7 +336,7 @@ function register() {
       }
 
       if (result.error) return finishChat({ error: true, status: result.status, message: result.message });
-      if (result.fallback) previousResponseId = null;
+      if (result.fallback) { previousResponseId = null; reuseGloballyDisabled = true; }
       else if (result.responseId) previousResponseId = result.responseId;
       if (result.tokens) fiveHour.addTokens(result.tokens);
       totalText += result.text || '';
@@ -348,10 +352,19 @@ function register() {
         let args = {};
         try { args = JSON.parse(call.arguments || '{}'); } catch { /* args vazios */ }
         const toolName = call.name || 'unknown_tool';
-        emit(event, 'tool-call', { name: toolName, args, call_id: call.call_id });
-        const outcome = await tools.invoke(toolName, args);
+        const signature = toolName + ':' + JSON.stringify(args);
+        const repeated = seenCalls.has(signature);
+        let outcome;
+        if (repeated) {
+          outcome = seenCalls.get(signature);
+          emit(event, 'notice', { message: `Chamada repetida ignorada: ${toolName}. Use o resultado anterior e avance.` });
+        } else {
+          emit(event, 'tool-call', { name: toolName, args, call_id: call.call_id });
+          outcome = await tools.invoke(toolName, args);
+          seenCalls.set(signature, outcome);
+        }
         emit(event, 'tool-result', { name: toolName, call_id: call.call_id, ok: outcome.ok,
-          summary: clipForEvent(outcome) });
+          summary: repeated ? 'Resultado reaproveitado — NÃO repita esta chamada.' : clipForEvent(outcome) });
         if (['mcp_connect', 'mcp_disconnect'].includes(toolName)) {
           emit(event, 'mcp-changed', { name: toolName, ok: outcome.ok });
         }

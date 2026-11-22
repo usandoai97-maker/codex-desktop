@@ -28,9 +28,12 @@ async function runPipeline(plugin, task, event) {
     emit(event, 'text', { delta: `\n\n── ${stage.name} ──\n` });
 
     const input = [];
-    if (context) {
-      input.push({ role: 'system', content: `Trabalho da etapa anterior (use como referência):\n${context.slice(0, 12000)}` });
-    }
+    input.push({
+      role: 'system',
+      content: 'EXECUTE com ferramentas. Não responda só com texto. '
+        + stage.prompt
+        + (context ? `\n\nTrabalho da etapa anterior (use como referência):\n${context.slice(0, 12000)}` : ''),
+    });
     input.push({ role: 'user', content: task });
 
     let result;

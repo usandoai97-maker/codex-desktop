@@ -108,9 +108,10 @@ function get(id) { return byId.get(id) || null; }
 
 function systemPrompt(plugin) {
   if (!plugin) return '';
-  if (plugin.prompt) return `[Plugin ${plugin.name}] ${plugin.prompt}`;
+  const action = 'EXECUTE a tarefa com ferramentas — não apenas cumprimente ou explique. ';
+  if (plugin.prompt) return `[Plugin ${plugin.name}] ${action}${plugin.prompt}`;
   if (plugin.pipeline) {
-    return `[Plugin ${plugin.name}] Pipeline multi-agente: `
+    return `[Plugin ${plugin.name}] ${action}Pipeline multi-agente: `
       + plugin.pipeline.map((s) => s.name).join(' → ')
       + '. Execute cada etapa com suas ferramentas específicas.';
   }
