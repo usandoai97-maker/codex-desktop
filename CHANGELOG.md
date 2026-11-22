@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] - 2026-11-22
+
+### Changed
+
+- UI redesigned after the **Codex desktop app** instead of a terminal:
+  left sidebar with conversation list, topbar with mode/model/effort/full-access
+  controls, chat with right-aligned user bubbles and assistant cards with the ✳
+  mark, rounded composer, and a subtle bottom status bar.
+- Enter sends the message, Shift+Enter inserts a newline.
+- All panels remain reachable from the sidebar.
+
 ## [1.4.2] - 2026-11-22
 
 ### Changed

@@ -30,6 +30,9 @@ const els = {
   mcpCwd: $('mcpCwd'), addMcpBtn: $('addMcpBtn'), mcpMsg: $('mcpMsg'),
   mcpStatus: $('mcpStatus'), refreshMcp: $('refreshMcp'),
   conversationsList: $('conversationsList'), newConvBtn: $('newConvBtn'),
+  sidebarConversations: $('sidebarConversations'), crumb: $('crumb'),
+  sbMode: $('sbMode'), sbModel: $('sbModel'), sbEffort: $('sbEffort'),
+  sbTools: $('sbTools'), sbTokens: $('sbTokens'), sbAccount: $('sbAccount'),
   usageBox: $('usageBox'), usageMsg: $('usageMsg'),
   refreshUsage: $('refreshUsage'), openUsageSettings: $('openUsageSettings'),
 };
@@ -65,8 +68,9 @@ function logActivity(text, isError) {
 let usageTimer = null;
 
 function setView(name) {
-  document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
-  document.querySelectorAll('.view').forEach((v) => { v.hidden = v.id !== `view-${name}`; });
+  document.querySelectorAll('.side-action').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === `view-${name}`));
+  els.crumb.textContent = 'codex / ' + name;
   if (usageTimer) { clearInterval(usageTimer); usageTimer = null; }
   if (name === 'usage') usageTimer = setInterval(loadUsage, 60000);
   if (name === 'history') usageTimer = setInterval(loadHistory, 4000);
@@ -79,6 +83,7 @@ function applyModeUI(mode) {
   els.modeSwitch.querySelectorAll('button').forEach((b) =>
     b.classList.toggle('active', b.dataset.mode === mode));
   document.body.dataset.mode = mode;
+  updateStatusbar();
   const sub = document.querySelector('#view-chat .sub');
   if (sub) sub.textContent = mode === 'codex'
     ? 'MODO CODEX — acesso total: PowerShell, arquivos, pastas, processos e MCP.'
@@ -237,6 +242,7 @@ function limitBar(label, window) {
 }
 
 function renderUsage(data, local) {
+  if (local) els.sbTokens.textContent = `${local.tokens || 0} tokens / 5h`;
   const localBox = local ? `<div class="panel usage-local">
     <h2>Cota de 5 horas (consumo medido)</h2>
     <div class="usage-head">
@@ -317,12 +323,20 @@ function esc(text) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+function updateStatusbar() {
+  els.sbMode.textContent = currentMode === 'codex' ? '⚡ codex' : '💬 chat';
+  els.sbModel.textContent = els.model.value || '—';
+  els.sbEffort.textContent = (els.effort.value || 'high').toUpperCase();
+  els.sbTools.textContent = toolCache.length + ' ferramentas';
+}
+
 /* ---------------- autenticação ---------------- */
 
 async function refreshStatus() {
   const status = await window.electronAPI.codexAuth.getStatus();
   const authed = !!status.authenticated;
   els.statusText.textContent = authed ? `Conectado: ${status.email || status.account_id}` : 'Não autenticado';
+  els.sbAccount.textContent = authed ? (status.email || status.account_id) : 'offline';
   els.loginBtn.hidden = authed;
   els.logoutBtn.hidden = !authed;
   els.loginGate.hidden = authed;
@@ -343,6 +357,7 @@ async function loadModels() {
   }
   if (models.includes(previous)) els.model.value = previous;
   if (result.error) logActivity(`Catálogo de modelos indisponível: ${result.message || result.status}. Usando padrão.`, true);
+  updateStatusbar();
 }
 
 async function startAuth() {
@@ -375,6 +390,17 @@ function renderChatMessages() {
 
 async function loadConversations() {
   const list = await window.electronAPI.conversations.list();
+
+  els.sidebarConversations.innerHTML = '';
+  for (const c of (list || []).slice(0, 40)) {
+    const item = document.createElement('div');
+    item.className = 'item' + (c.active ? ' active' : '');
+    item.textContent = c.title;
+    item.title = c.title;
+    item.addEventListener('click', () => openConversation(c.id));
+    els.sidebarConversations.appendChild(item);
+  }
+
   els.conversationsList.innerHTML = '';
   if (!list || !list.length) {
     els.conversationsList.innerHTML = '<div>Nenhuma conversa salva. Crie uma nova.</div>';
@@ -431,6 +457,7 @@ async function createConversation() {
   renderChatMessages();
   setView('chat');
   els.prompt.focus();
+  await loadConversations();
 }
 
 async function saveMessages(messages) {
@@ -540,6 +567,7 @@ async function loadTools() {
     }
   }
   els.toolCount.textContent = `${toolCache.length} ferramentas`;
+  updateStatusbar();
 }
 
 async function runToolFromForm() {
@@ -669,7 +697,7 @@ async function answerPermission(allowed) {
 
 /* ---------------- eventos ---------------- */
 
-document.querySelectorAll('.nav-item').forEach((b) => b.addEventListener('click', () => {
+document.querySelectorAll('.side-action').forEach((b) => b.addEventListener('click', () => {
   setView(b.dataset.view);
   if (b.dataset.view === 'usage') loadUsage();
   if (b.dataset.view === 'history') loadHistory();
@@ -689,7 +717,9 @@ els.loginBtn.addEventListener('click', startAuth);
 els.loginBtn2.addEventListener('click', startAuth);
 els.logoutBtn.addEventListener('click', logout);
 els.sendBtn.addEventListener('click', send);
-els.prompt.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); });
+els.prompt.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
 els.reloadModelsBtn.addEventListener('click', loadModels);
 els.effort.addEventListener('change', async () => {
   await window.electronAPI.settings.set({ reasoningEffort: els.effort.value });
@@ -749,6 +779,7 @@ window.electronAPI.onMenuAction?.((action) => {
   await refreshStatus();
   await loadTools();
   await loadMcp();
+  await loadConversations();
 
   const active = await window.electronAPI.conversations.active();
   if (active) {

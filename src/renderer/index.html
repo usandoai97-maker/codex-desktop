@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Codex Desktop — Agente Local</title>
+  <title>Codex</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<!-- Confirmação interna (evita o confirm() nativo que rouba o foco) -->
+<!-- Confirmação interna -->
 <div id="confirmModal" class="modal" hidden>
   <div class="modal-box">
     <h2 id="confirmTitle">Confirmação</h2>
@@ -21,10 +21,10 @@
   </div>
 </div>
 
-<!-- Modal de permissão para ações sensíveis -->
+<!-- Permissão de ferramenta -->
 <div id="permissionModal" class="modal" hidden>
   <div class="modal-box">
-    <h2>⚠️ Autorização necessária</h2>
+    <h2>⚠ Autorização necessária</h2>
     <p>O agente quer executar uma ação no seu computador:</p>
     <pre id="permissionInfo"></pre>
     <div class="modal-actions">
@@ -34,97 +34,101 @@
   </div>
 </div>
 
-<header>
-  <div class="brand">
-    <span class="dot"></span>
-    <strong>Codex Desktop</strong>
-    <span class="badge">Agente Local</span>
-  </div>
-  <div class="header-right">
-    <div class="mode-switch" id="modeSwitch">
-      <button data-mode="chat" class="active">💬 Chat</button>
-      <button data-mode="codex">⚡ Codex</button>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="side-head">
+      <div class="logo"><span class="mark">✳</span> Codex</div>
+      <button id="newConvBtn" class="icon-btn" title="Nova conversa (Ctrl+N)">+</button>
     </div>
-    <div class="auth-box">
-      <span id="statusText">Verificando sessão…</span>
-      <button id="loginBtn" class="btn primary" hidden>Entrar com ChatGPT</button>
-      <button id="logoutBtn" class="btn ghost" hidden>Sair</button>
-    </div>
-  </div>
-</header>
 
-<div class="layout">
-  <nav class="sidebar">
-    <button class="nav-item active" data-view="chat"><span>💬</span> Chat</button>
-    <button class="nav-item" data-view="conversations"><span>🗂️</span> Conversas</button>
-    <button class="nav-item" data-view="tools"><span>🛠️</span> Ferramentas</button>
-    <button class="nav-item" data-view="mcp"><span>🔌</span> MCP</button>
-    <button class="nav-item" data-view="extract"><span>🎬</span> Extrair</button>
-    <button class="nav-item" data-view="system"><span>🖥️</span> Sistema</button>
-    <button class="nav-item" data-view="usage"><span>📊</span> Uso</button>
-    <button class="nav-item" data-view="history"><span>📜</span> Histórico</button>
-    <button class="nav-item" data-view="settings"><span>⚙️</span> Configurações</button>
-    <div class="sidebar-foot">
-      <div id="toolCount" class="tiny">— ferramentas</div>
+    <div class="side-actions">
+      <button class="side-action active" data-view="chat"><span>💬</span> Chat</button>
+      <button class="side-action" data-view="conversations"><span>🗂️</span> Conversas</button>
+      <button class="side-action" data-view="tools"><span>🛠️</span> Ferramentas</button>
+      <button class="side-action" data-view="mcp"><span>🔌</span> MCP</button>
+      <button class="side-action" data-view="extract"><span>🎬</span> Extrair</button>
+      <button class="side-action" data-view="system"><span>🖥️</span> Sistema</button>
+      <button class="side-action" data-view="usage"><span>📊</span> Uso</button>
+      <button class="side-action" data-view="history"><span>📜</span> Histórico</button>
+      <button class="side-action" data-view="settings"><span>⚙️</span> Configurações</button>
+    </div>
+
+    <div class="side-label">CONVERSAS</div>
+    <div id="sidebarConversations" class="conv-list"></div>
+
+    <div class="side-foot">
+      <div id="statusText" class="acct">Verificando sessão…</div>
+      <div class="side-foot-actions">
+        <button id="loginBtn" class="btn ghost small" hidden>Entrar</button>
+        <button id="logoutBtn" class="btn ghost small" hidden>Sair</button>
+      </div>
       <div class="tiny">OAuth + PKCE · Electron</div>
     </div>
-  </nav>
+  </aside>
 
-  <main>
-    <!-- CHAT -->
-    <section id="view-chat" class="view">
-      <div class="view-head">
-        <div>
-          <h1>Assistente com acesso à máquina</h1>
-          <p class="sub">Peça para ler arquivos, rodar comandos ou extrair dados de vídeos.</p>
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div class="crumb" id="crumb">codex / chat</div>
+      <div class="top-controls">
+        <div class="mode-switch" id="modeSwitch">
+          <button data-mode="chat" class="active">💬 Chat</button>
+          <button data-mode="codex">⚡ Codex</button>
         </div>
-        <div class="row compact">
-          <label for="model">Modelo:</label>
-          <select id="model"><option value="">Carregando…</option></select>
-          <button id="reloadModelsBtn" class="btn ghost small">⟳</button>
-          <label for="effort">Esforço:</label>
+        <label class="ctl">modelo
+          <select id="model"><option value="">…</option></select>
+        </label>
+        <button id="reloadModelsBtn" class="icon-btn" title="Recarregar modelos">⟳</button>
+        <label class="ctl">esforço
           <select id="effort">
             <option value="low">LOW</option>
             <option value="medium">MED</option>
             <option value="high" selected>HIGH</option>
             <option value="xhigh">MAX</option>
           </select>
-          <button id="fullAccessBtn" class="btn ghost small full-off" title="Desativa todas as confirmações no modo Codex">🔒 Full: OFF</button>
-        </div>
+        </label>
+        <button id="fullAccessBtn" class="btn ghost small full-off" title="Desativa confirmações">🔒 Full: OFF</button>
       </div>
+    </header>
+
+    <!-- CHAT -->
+    <section id="view-chat" class="view active">
       <div id="loginGate" class="gate" hidden>
         <p>Faça login com o ChatGPT para usar o agente.</p>
         <button id="loginBtn2" class="btn primary">Iniciar autenticação</button>
         <p id="authError" class="error"></p>
       </div>
-      <div id="chatArea">
+
+      <div id="chatArea" class="chat-area">
         <div id="messages" class="messages">
-          <div class="msg assistant">Olá! Posso inspecionar arquivos, executar comandos e extrair áudio/quadros/transcrições. O que quer fazer?</div>
+          <div class="msg assistant">Bem-vindo ao Codex. Posso inspecionar arquivos, executar comandos e usar ferramentas MCP. O que vamos fazer?</div>
         </div>
         <div id="toolActivity" class="activity"></div>
         <div class="composer">
-          <textarea id="prompt" rows="3" placeholder="Ex.: liste os arquivos da minha Área de Trabalho e transcreva o vídeo videoplayback.mp4"></textarea>
-          <button id="sendBtn" class="btn primary">Enviar</button>
+          <textarea id="prompt" rows="2" placeholder="Pergunte algo ou digite uma tarefa…"></textarea>
+          <button id="sendBtn" class="send" title="Enviar">↑</button>
         </div>
+        <div class="hint">Enter envia · Shift+Enter quebra linha · Ctrl+N nova conversa</div>
         <p id="chatError" class="error"></p>
       </div>
     </section>
 
     <!-- CONVERSAS -->
-    <section id="view-conversations" class="view" hidden>
-      <div class="view-head"><div><h1>Conversas antigas</h1>
-        <p class="sub">Tudo fica salvo no disco e nunca expira — clique em Abrir para continuar de onde parou.</p></div>
-        <button id="newConvBtn" class="btn primary">+ Nova conversa</button></div>
+    <section id="view-conversations" class="view">
+      <div class="view-head"><div><h1>Conversas</h1>
+        <p class="sub">Salvas em disco — nunca expiram.</p></div></div>
       <div id="conversationsList" class="history"></div>
     </section>
 
     <!-- FERRAMENTAS -->
-    <section id="view-tools" class="view" hidden>
-      <div class="view-head"><div><h1>Ferramentas disponíveis</h1>
-        <p class="sub">São enviadas ao modelo como funções. As marcadas como sensíveis pedem confirmação.</p></div></div>
+    <section id="view-tools" class="view">
+      <div class="view-head"><div><h1>Ferramentas</h1>
+        <p class="sub">Function tools disponíveis para o agente.</p></div>
+        <span id="toolCount" class="tag">— ferramentas</span></div>
       <div id="toolsGrid" class="grid"></div>
       <div class="panel">
-        <h2>Testar ferramenta diretamente</h2>
+        <h2>Testar ferramenta</h2>
         <div class="row">
           <select id="toolSelect"></select>
           <input id="toolArgs" type="text" value='{}' placeholder='{"path":"..."}' />
@@ -135,19 +139,19 @@
     </section>
 
     <!-- MCP -->
-    <section id="view-mcp" class="view" hidden>
-      <div class="view-head"><div><h1>Servidores MCP</h1>
-        <p class="sub">Conecte servidores locais (stdio). Suas ferramentas entram no modo Codex.</p></div>
+    <section id="view-mcp" class="view">
+      <div class="view-head"><div><h1>MCP</h1>
+        <p class="sub">Servidores conectados via stdio.</p></div>
         <button id="refreshMcp" class="btn ghost">Reconectar</button></div>
       <div class="panel">
         <h2>Adicionar servidor</h2>
         <div class="row">
-          <input id="mcpName" type="text" placeholder="Nome (ex.: filesystem)" />
-          <input id="mcpCommand" type="text" placeholder="npx -y @modelcontextprotocol/server-filesystem C:\Users" />
+          <input id="mcpName" type="text" placeholder="Nome" />
+          <input id="mcpCommand" type="text" placeholder="cmd.exe" />
         </div>
         <div class="row compact">
-          <input id="mcpArgs" type="text" placeholder='Argumentos JSON (opcional): ["--flag"]' />
-          <input id="mcpCwd" type="text" placeholder="Diretório de execução (opcional)" />
+          <input id="mcpArgs" type="text" placeholder='Args JSON: ["/c","..."]' />
+          <input id="mcpCwd" type="text" placeholder="Diretório (opcional)" />
         </div>
         <button id="addMcpBtn" class="btn primary">Adicionar e conectar</button>
         <p id="mcpMsg" class="ok"></p>
@@ -155,10 +159,10 @@
       <div id="mcpStatus" class="mcp-list"></div>
     </section>
 
-    <!-- EXTRAÇÃO -->
-    <section id="view-extract" class="view" hidden>
-      <div class="view-head"><div><h1>Painel de extração</h1>
-        <p class="sub">Use ffmpeg + Whisper instalados nesta máquina.</p></div></div>
+    <!-- EXTRAIR -->
+    <section id="view-extract" class="view">
+      <div class="view-head"><div><h1>Extrair</h1>
+        <p class="sub">ffmpeg + Whisper.</p></div></div>
       <div class="panel">
         <label>Arquivo de vídeo / áudio</label>
         <div class="row">
@@ -166,13 +170,13 @@
           <button id="pickExtractFile" class="btn ghost">Escolher…</button>
         </div>
         <div class="button-row">
-          <button class="btn ghost" data-extract="info">ℹ️ Informações</button>
-          <button class="btn ghost" data-extract="audio">🎵 Extrair áudio</button>
-          <button class="btn ghost" data-extract="frames">🖼️ Extrair quadros</button>
+          <button class="btn ghost" data-extract="info">ℹ Informações</button>
+          <button class="btn ghost" data-extract="audio">🎵 Áudio</button>
+          <button class="btn ghost" data-extract="frames">🖼 Quadros</button>
           <button class="btn ghost" data-extract="transcribe">📝 Transcrever</button>
         </div>
         <div class="row compact">
-          <label for="frameInterval">Intervalo dos quadros (s):</label>
+          <label for="frameInterval">Intervalo (s):</label>
           <input id="frameInterval" class="w90" type="number" value="60" min="1" />
           <label for="transcriptLang">Idioma:</label>
           <input id="transcriptLang" class="w70" type="text" value="pt" />
@@ -181,38 +185,38 @@
       </div>
     </section>
 
-    <!-- USO -->
-    <section id="view-usage" class="view" hidden>
-      <div class="view-head"><div><h1>Uso e limites da conta</h1>
-        <p class="sub">Dados do mesmo endpoint que o Codex CLI usa.</p></div>
-        <div class="row compact">
-          <button id="refreshUsage" class="btn ghost">Atualizar</button>
-          <button id="openUsageSettings" class="btn ghost">Abrir no navegador</button>
-        </div>
-      </div>
-      <div id="usageBox" class="panel">Carregando…</div>
-      <p id="usageMsg" class="error"></p>
-    </section>
-
     <!-- SISTEMA -->
-    <section id="view-system" class="view" hidden>
-      <div class="view-head"><div><h1>Máquina</h1><p class="sub">Informações e comandos locais.</p></div>
+    <section id="view-system" class="view">
+      <div class="view-head"><div><h1>Sistema</h1>
+        <p class="sub">Máquina e comandos locais.</p></div>
         <button id="refreshSystem" class="btn ghost">Atualizar</button></div>
       <pre id="systemInfo" class="output">Carregando…</pre>
       <div class="panel">
         <h2>Executar comando</h2>
         <div class="row">
-          <input id="commandInput" type="text" placeholder="dir  (ou  Get-ChildItem)" />
+          <input id="commandInput" type="text" placeholder="dir" />
           <button id="runCommandBtn" class="btn danger">Executar</button>
         </div>
         <pre id="commandOutput" class="output"></pre>
       </div>
     </section>
 
+    <!-- USO -->
+    <section id="view-usage" class="view">
+      <div class="view-head"><div><h1>Uso</h1>
+        <p class="sub">Limites da conta e consumo de 5h.</p></div>
+        <div class="row compact">
+          <button id="refreshUsage" class="btn ghost">Atualizar</button>
+          <button id="openUsageSettings" class="btn ghost">Abrir no navegador</button>
+        </div></div>
+      <div id="usageBox" class="panel">Carregando…</div>
+      <p id="usageMsg" class="error"></p>
+    </section>
+
     <!-- HISTÓRICO -->
-    <section id="view-history" class="view" hidden>
-      <div class="view-head"><div><h1>Histórico de atividades</h1>
-        <p class="sub">Conversas e ferramentas — fica salvo entre reinícios.</p></div>
+    <section id="view-history" class="view">
+      <div class="view-head"><div><h1>Histórico</h1>
+        <p class="sub">Mensagens e ferramentas.</p></div>
         <div class="row compact">
           <button id="refreshHistory" class="btn ghost">Atualizar</button>
           <button id="clearHistory" class="btn ghost">Limpar</button>
@@ -221,34 +225,49 @@
     </section>
 
     <!-- CONFIGURAÇÕES -->
-    <section id="view-settings" class="view" hidden>
-      <div class="view-head"><div><h1>Configurações</h1><p class="sub">Preferências do agente.</p></div></div>
+    <section id="view-settings" class="view">
+      <div class="view-head"><div><h1>Configurações</h1>
+        <p class="sub">Preferências do agente.</p></div></div>
       <div class="panel">
         <label>Diretório de trabalho</label>
         <div class="row"><input id="cfgWorkingDir" type="text" /><button id="cfgPickDir" class="btn ghost">Escolher…</button></div>
-        <label class="check"><input id="cfgAllowShell" type="checkbox" /> Permitir execução de comandos</label>
+        <label class="check"><input id="cfgAllowShell" type="checkbox" /> Permitir comandos</label>
         <label class="check"><input id="cfgAllowWrite" type="checkbox" /> Permitir escrita de arquivos</label>
         <label class="check"><input id="cfgAskConfirm" type="checkbox" /> Pedir confirmação para ações sensíveis</label>
-        <label class="check"><input id="cfgFullAccess" type="checkbox" /> 🔓 Full Access — não pedir permissão para nada (por sua conta e risco)</label>
+        <label class="check"><input id="cfgFullAccess" type="checkbox" /> 🔓 Full Access — sem confirmação</label>
         <div class="row compact">
           <label for="cfgPython">Python:</label><input id="cfgPython" type="text" value="python" />
-          <label for="cfgRounds">Máx. rodadas de ferramentas:</label><input id="cfgRounds" class="w70" type="number" min="1" max="10" value="5" />
-          <label for="cfg5hLimit">Limite mensagens/5h:</label><input id="cfg5hLimit" class="w90" type="number" min="0" value="0" />
-          <label for="cfg5hTokenLimit">Limite tokens/5h:</label><input id="cfg5hTokenLimit" class="w90" type="number" min="0" value="0" />
-          <label for="cfgEffort">Esforço padrão:</label>
+          <label for="cfgRounds">Rodadas:</label><input id="cfgRounds" class="w70" type="number" min="1" max="10" value="5" />
+          <label for="cfgEffort">Esforço:</label>
           <select id="cfgEffort">
-            <option value="low">LOW</option>
-            <option value="medium">MED</option>
-            <option value="high">HIGH</option>
-            <option value="xhigh">MAX</option>
+            <option value="low">LOW</option><option value="medium">MED</option>
+            <option value="high">HIGH</option><option value="xhigh">MAX</option>
           </select>
         </div>
-        <button id="saveSettings" class="btn primary">Salvar configurações</button>
+        <div class="row compact">
+          <label for="cfg5hLimit">Limite mensagens/5h:</label><input id="cfg5hLimit" class="w90" type="number" min="0" value="0" />
+          <label for="cfg5hTokenLimit">Limite tokens/5h:</label><input id="cfg5hTokenLimit" class="w90" type="number" min="0" value="0" />
+        </div>
+        <button id="saveSettings" class="btn primary">Salvar</button>
         <p id="settingsMsg" class="ok"></p>
       </div>
     </section>
   </main>
 </div>
+
+<footer class="statusbar">
+  <span id="sbMode">chat</span>
+  <span class="sep">·</span>
+  <span id="sbModel">—</span>
+  <span class="sep">·</span>
+  <span id="sbEffort">HIGH</span>
+  <span class="sep">·</span>
+  <span id="sbTools">0 ferramentas</span>
+  <span class="spacer"></span>
+  <span id="sbTokens">0 tokens / 5h</span>
+  <span class="sep">·</span>
+  <span id="sbAccount">—</span>
+</footer>
 
 <script src="renderer.js"></script>
 </body>
