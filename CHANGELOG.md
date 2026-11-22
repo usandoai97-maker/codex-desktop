@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.2] - 2026-11-22
+
+### Changed
+
+- Agent prompt now enforces cleanup on rework: locate old objects with
+  `search_game_tree`, destroy them with `execute_luau` (`Instance:Destroy()`)
+  before creating replacements, and verify the result afterwards.
+
 ## [1.4.1] - 2026-11-22
 
 ### Fixed
