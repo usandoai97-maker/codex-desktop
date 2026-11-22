@@ -18,7 +18,7 @@ const els = {
   historyList: $('historyList'), refreshHistory: $('refreshHistory'), clearHistory: $('clearHistory'),
   cfgWorkingDir: $('cfgWorkingDir'), cfgAllowShell: $('cfgAllowShell'), cfgAllowWrite: $('cfgAllowWrite'),
   cfgAskConfirm: $('cfgAskConfirm'), cfgPython: $('cfgPython'), cfgRounds: $('cfgRounds'),
-  cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'), cfg5hLimit: $('cfg5hLimit'),
+  cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'), cfgReuse: $('cfgReuse'), cfg5hLimit: $('cfg5hLimit'),
   cfg5hTokenLimit: $('cfg5hTokenLimit'),
   cfgPickDir: $('cfgPickDir'), saveSettings: $('saveSettings'), settingsMsg: $('settingsMsg'),
   permissionModal: $('permissionModal'), permissionInfo: $('permissionInfo'),
@@ -655,6 +655,7 @@ async function loadSettings() {
   els.cfgRounds.value = s.maxToolRounds;
   els.cfgEffort.value = s.reasoningEffort || 'high';
   els.effort.value = els.cfgEffort.value;
+  els.cfgReuse.checked = s.reuseResponses !== false;
   els.cfg5hLimit.value = s.fiveHourLimit || 0;
   els.cfg5hTokenLimit.value = s.fiveHourTokenLimit || 0;
   applyFullAccessUI(s.fullAccess);
@@ -672,6 +673,7 @@ async function saveSettings() {
     fullAccess: els.cfgFullAccess.checked,
     fiveHourLimit: Number(els.cfg5hLimit.value) || 0,
     fiveHourTokenLimit: Number(els.cfg5hTokenLimit.value) || 0,
+    reuseResponses: els.cfgReuse.checked,
   });
   els.effort.value = els.cfgEffort.value;
   applyFullAccessUI(els.cfgFullAccess.checked);

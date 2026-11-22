@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] - 2026-11-22
+
+### Added / Optimized
+
+- Tool-loop rounds now reuse the previous Responses API response via
+  `previous_response_id`, sending only the new `function_call_output` items.
+  This avoids resending the full tool catalog and conversation history on every
+  round — a large input-token saving with no loss of tools or context.
+- Graceful fallback to the classic full-payload mode if the backend rejects
+  `previous_response_id`/`store`.
+- New setting **Reutilizar resposta entre rodadas** (default on) to disable it.
+
 ## [1.6.0] - 2026-11-22
 
 ### Changed

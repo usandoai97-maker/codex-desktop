@@ -219,6 +219,30 @@ const eventos = [];
   assert.equal(parsed2.calls[0].name, 'unknown_tool');
   console.log('✓ nome vazio substituído por placeholder (evita 400)');
 
+  // Reuso de resposta: rodadas de ferramenta não reenviam tools/histórico
+  global.fetch = async (url, options) => {
+    capturedFetch = { url, options };
+    const lines = [
+      'data: {"type":"response.completed","response":{"id":"resp_1","usage":{"total_tokens":10}}}',
+      'data: [DONE]',
+    ];
+    let i = 0;
+    return { ok: true, status: 200, headers: { get: () => null }, body: { getReader: () => ({
+      read: async () => i >= lines.length ? { done: true } : { done: false, value: Buffer.from(lines[i++] + '\n\n') },
+    }) } };
+  };
+  const reused = await streamRound({
+    input: [{ type: 'function_call_output', call_id: 'c1', output: '{}' }],
+    model: 'x', tokenResult: { access_token: 't', account_id: 'a' },
+    event: fakeEvent, withTools: true, previousResponseId: 'resp_0', store: true, reuse: true,
+  });
+  assert.equal(reused.responseId, 'resp_1');
+  const rb = JSON.parse(capturedFetch.options.body);
+  assert.equal(rb.previous_response_id, 'resp_0');
+  assert.equal(rb.tools, undefined);
+  assert.equal(rb.instructions, undefined);
+  console.log('✓ reuso de resposta evita reenviar tools/histórico');
+
   const history = require('../src/main/history');
   const chats = history.list().filter((e) => e.type === 'chat');
   assert.ok(chats.length >= 4, 'cada mensagem deve gerar entrada no histórico');

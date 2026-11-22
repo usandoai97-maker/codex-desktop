@@ -83,7 +83,8 @@ async function listModels() {
 
 /* ---------------- Uma rodada de stream ---------------- */
 
-async function streamRound({ input, model, tokenResult, event, withTools, effort, withReasoning = true }) {
+async function streamRound({ input, model, tokenResult, event, withTools, effort, withReasoning = true,
+  previousResponseId = null, store = false, reuse = false }) {
   let instructions = '';
   const normalizedInput = [];
   for (const item of input || []) {
@@ -96,16 +97,15 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
     }
   }
 
-  const body = {
-    model,
-    instructions,
-    input: normalizedInput,
-    stream: true,
-    store: false,
-  };
-  if (withTools && ENABLE_TOOLS) body.tools = tools.definitions();
-  if (withReasoning && effort && effort !== 'auto') {
-    body.reasoning = { effort, summary: 'auto' };
+  const body = { model, input: normalizedInput, stream: true, store };
+
+  if (previousResponseId && reuse) {
+    // Rodada de ferramenta: o backend já tem prompt/ferramentas/histórico da resposta anterior.
+    body.previous_response_id = previousResponseId;
+  } else {
+    body.instructions = instructions;
+    if (withTools && ENABLE_TOOLS) body.tools = tools.definitions();
+    if (withReasoning && effort && effort !== 'auto') body.reasoning = { effort, summary: 'auto' };
   }
 
   const response = await fetch(API_URL, {
@@ -130,11 +130,18 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
     // Se o backend não aceitar o campo tools, tenta sem ele.
     if (response.status === 400 && withTools && /tool/i.test(text)) {
       emit(event, 'notice', { message: 'Backend não aceitou ferramentas; repetindo sem tools.' });
-      return streamRound({ input, model, tokenResult, event, withTools: false, effort, withReasoning });
+      return streamRound({ input, model, tokenResult, event, withTools: false, effort, withReasoning,
+        previousResponseId, store, reuse });
     }
     if (response.status === 400 && withReasoning && body.reasoning && /reasoning|effort/i.test(text)) {
       emit(event, 'notice', { message: `Backend não aceitou o esforço "${effort}"; repetindo sem reasoning.` });
-      return streamRound({ input, model, tokenResult, event, withTools, effort, withReasoning: false });
+      return streamRound({ input, model, tokenResult, event, withTools, effort, withReasoning: false,
+        previousResponseId, store, reuse });
+    }
+    if (reuse && response.status === 400 && /previous_response_id|store|response not found/i.test(text)) {
+      emit(event, 'notice', { message: 'Backend não suporta reuso de resposta; usando modo clássico.' });
+      const classic = await streamRound({ input, model, tokenResult, event, withTools, effort, withReasoning });
+      return { ...classic, fallback: true };
     }
     return { error: true, status: response.status, message: text.slice(0, 1200) };
   }
@@ -146,6 +153,7 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
   let buffer = '';
   let text = '';
   let usageTokens = 0;
+  let responseId = null;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -181,6 +189,7 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
       };
 
       if (ev === 'response.completed' || ev === 'response.usage') {
+        if (data.response?.id) responseId = data.response.id;
         const u = data.response?.usage || data.usage;
         if (u) {
           const total = u.total_tokens
@@ -223,7 +232,7 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
     name: c.name || nameById.get(call_id) || 'unknown_tool',
     arguments: c.args || '{}',
   }));
-  return { error: false, text, calls: finalCalls, tokens: usageTokens };
+  return { error: false, text, calls: finalCalls, tokens: usageTokens, responseId };
 }
 
 /* ---------------- Registro de handlers ---------------- */
@@ -297,16 +306,26 @@ function register() {
     };
 
     let totalText = '';
+    let previousResponseId = null;
+    let followupItems = [];
 
     for (let round = 0; round <= maxRounds; round++) {
+      const reuse = round > 0 && !!previousResponseId && settings.reuseResponses !== false;
       let result;
       try {
-        result = await streamRound({ input, model, tokenResult, event, withTools: isCodex, effort });
+        result = await streamRound({
+          input: reuse ? followupItems : input,
+          model, tokenResult, event, withTools: isCodex, effort,
+          previousResponseId: reuse ? previousResponseId : null,
+          store: reuse, reuse,
+        });
       } catch (err) {
         return finishChat({ error: true, status: 0, message: `Falha de rede: ${err.message}` });
       }
 
       if (result.error) return finishChat({ error: true, status: result.status, message: result.message });
+      if (result.fallback) previousResponseId = null;
+      else if (result.responseId) previousResponseId = result.responseId;
       if (result.tokens) fiveHour.addTokens(result.tokens);
       totalText += result.text || '';
 
@@ -315,7 +334,8 @@ function register() {
         return finishChat({ error: false, status: 200, rounds: round + 1, text: totalText });
       }
 
-      // Executa cada ferramenta e devolve o resultado ao modelo.
+      // Executa cada ferramenta e devolve só os novos itens na próxima rodada.
+      followupItems = [];
       for (const call of result.calls) {
         let args = {};
         try { args = JSON.parse(call.arguments || '{}'); } catch { /* args vazios */ }
@@ -327,13 +347,13 @@ function register() {
         if (['mcp_connect', 'mcp_disconnect'].includes(toolName)) {
           emit(event, 'mcp-changed', { name: toolName, ok: outcome.ok });
         }
-        input.push({
+        followupItems.push({
           type: 'function_call',
           call_id: call.call_id || 'call',
           name: toolName,
           arguments: call.arguments || '{}',
         });
-        input.push({
+        followupItems.push({
           type: 'function_call_output',
           call_id: call.call_id,
           output: compactOutcome(outcome),
