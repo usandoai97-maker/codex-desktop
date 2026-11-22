@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.1] - 2026-11-22
+
+### Fixed
+
+- `mcp-changed` is no longer emitted for every MCP tool call — only for
+  `mcp_connect` / `mcp_disconnect`. This removes the "MCP atualizado via chat"
+  spam when the agent uses Roblox Studio tools.
+- Agent prompt now forbids repeating `list_roblox_studios` /
+  `list_roblox_skills` / `get_roblox_skill` in a loop; after one discovery pass
+  it must act with `execute_luau`.
+
 ## [1.4.0] - 2026-11-22
 
 ### Added

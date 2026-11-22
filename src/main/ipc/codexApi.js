@@ -15,7 +15,7 @@ const FALLBACK_MODELS = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-5.6-sol', 'gpt-5.5'];
 const ENABLE_TOOLS = process.env.CODEX_ENABLE_TOOLS !== '0';
 
 const CHAT_PROMPT = 'Você é um assistente conversacional. Responda em português de forma clara e objetiva. Modo CHAT: não use ferramentas nem acesse a máquina.';
-const AGENT_PROMPT = 'Você é um agente local no Windows com acesso à máquina do usuário. Use as ferramentas disponíveis sempre que precisar: arquivos, pastas, PowerShell/cmd, processos, área de transferência, extração de áudio/vídeo e ferramentas MCP conectadas. Para tarefas do sistema prefira run_powershell. Respeite as confirmações de segurança. Responda em português e explique o que fez.';
+const AGENT_PROMPT = 'Você é um agente local no Windows com acesso à máquina do usuário. Use as ferramentas disponíveis sempre que precisar: arquivos, pastas, PowerShell/cmd, processos, área de transferência, extração de áudio/vídeo e ferramentas MCP conectadas. Para tarefas do sistema prefira run_powershell. Respeite as confirmações de segurança. Responda em português e explique o que fez. REGRA IMPORTANTE: quando usar MCP, faça a descoberta UMA VEZ (list_roblox_studios, se preciso list_roblox_skills) e então AJA imediatamente com a ferramenta de execução (execute_luau ou equivalente). Nunca repita list_roblox_studios/list_roblox_skills/get_roblox_skill em loop — se já tem o studio_id e as skills, não os consulte de novo.';
 
 function emit(event, type, data) {
   event.sender.send('codex-api:stream-chunk', { type, ...data });
@@ -323,7 +323,7 @@ function register() {
         const outcome = await tools.invoke(toolName, args);
         emit(event, 'tool-result', { name: toolName, call_id: call.call_id, ok: outcome.ok,
           summary: clipForEvent(outcome) });
-        if (toolName.startsWith('mcp_')) {
+        if (['mcp_connect', 'mcp_disconnect'].includes(toolName)) {
           emit(event, 'mcp-changed', { name: toolName, ok: outcome.ok });
         }
         input.push({
