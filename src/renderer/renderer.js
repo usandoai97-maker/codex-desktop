@@ -475,6 +475,11 @@ async function send() {
       case 'rate-limit':
         showRateLimit(chunk);
         break;
+      case 'mcp-changed':
+        logActivity(`🔌 MCP atualizado via chat: ${chunk.name}`);
+        loadMcp();
+        loadTools();
+        break;
       case 'raw':
         answer += chunk.raw || '';
         out.textContent = answer;

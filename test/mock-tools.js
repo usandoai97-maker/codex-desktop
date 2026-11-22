@@ -24,8 +24,19 @@ Module._load = function (request) {
   return originalLoad.apply(this, arguments);
 };
 
+// Stub do gerenciador MCP para não spawnar processos reais nos testes
+const mcpPath = require.resolve('../src/main/mcp/manager');
+require.cache[mcpPath] = {
+  id: mcpPath, filename: mcpPath, loaded: true,
+  exports: {
+    definitions: () => [], summary: () => [], status: () => [],
+    isMcpTool: () => null, callTool: async () => ({}),
+    refresh: async () => [], disconnect: async () => {},
+  },
+};
+
 const tools = require('../src/main/tools');
-const { updateSettings } = require('../src/main/settings');
+const { updateSettings, getSettings } = require('../src/main/settings');
 
 (async () => {
   const summary = tools.summary();
@@ -76,6 +87,27 @@ const { updateSettings } = require('../src/main/settings');
   console.log('✓ full access executa comandos/escrita sem confirmação');
 
   updateSettings({ fullAccess: false });
+
+  // MCP conectado pelo chat (formato {mcpServers:{...}})
+  const mcpResult = await tools.invoke('mcp_connect', {
+    config: {
+      mcpServers: {
+        Roblox_Studio: {
+          command: 'cmd.exe',
+          args: ['/c', 'cd /d %LOCALAPPDATA%\\Roblox && .\\mcp.bat'],
+        },
+      },
+    },
+  });
+  assert.equal(mcpResult.ok, true);
+  assert.deepEqual(mcpResult.result.added, ['Roblox_Studio']);
+  assert.equal(getSettings().mcpServers.length, 1);
+  assert.equal(getSettings().mcpServers[0].command, 'cmd.exe');
+  console.log('✓ MCP conectado pelo chat no formato {mcpServers:{...}}');
+
+  const mcpStatus = await tools.invoke('mcp_status', {});
+  assert.equal(mcpStatus.ok, true);
+  console.log('✓ mcp_status disponível');
 
   const hist = tools.getHistory();
   assert.ok(hist.length >= 6, 'todas as invocações devem ser registradas');

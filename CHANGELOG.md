@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] - 2026-11-22
+
+### Added
+
+- MCP servers can now be managed **from the chat**: new tools `mcp_connect`,
+  `mcp_status` and `mcp_disconnect`. Paste a config like
+  `{"mcpServers":{"Roblox_Studio":{"command":"cmd.exe","args":[...]}}}`
+  and the agent connects it live; its tools become available in the next loop round.
+- The MCP panel refreshes automatically when a server is connected via chat.
+
 ## [1.3.1] - 2026-11-22
 
 ### Changed

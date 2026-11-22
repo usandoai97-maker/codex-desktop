@@ -12,7 +12,7 @@ const path = require('node:path');
 const { exec, execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 const { shell, app } = require('electron');
-const { getSettings } = require('../settings');
+const { getSettings, updateSettings } = require('../settings');
 const { requestPermission } = require('../permissions');
 const { runExtract } = require('./extract');
 const mcp = require('../mcp/manager');
@@ -401,6 +401,104 @@ const TOOLS = [
         ['-NoProfile', '-NonInteractive', '-Command', 'Set-Clipboard -Value $args[0]', text],
         { windowsHide: true, timeout: 15000 });
       return { copied: true, stdout: clip(stdout) };
+    },
+  },
+
+  /* ---- Gerenciamento de MCP direto pelo chat ---- */
+  {
+    name: 'mcp_connect',
+    category: 'MCP',
+    description: 'Adiciona e conecta servidores MCP em tempo real. Aceita {"mcpServers":{...}} (vários) ou um objeto de servidor com name/command/args. Após conectar, as ferramentas do servidor ficam disponíveis imediatamente na próxima rodada.',
+    parameters: {
+      type: 'object',
+      properties: {
+        config: { type: 'object', description: 'Configuração MCP no formato {mcpServers:{...}} ou {name,command,args}' },
+      },
+      required: ['config'],
+    },
+    dangerous: false,
+    run: async ({ config }) => {
+      if (!config || typeof config !== 'object') throw new Error('Config inválida.');
+
+      const normalizeId = (s) => String(s || 'mcp').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      const incoming = [];
+
+      const rawServers = config.mcpServers || config.servers;
+      if (rawServers) {
+        if (Array.isArray(rawServers)) {
+          for (const s of rawServers) incoming.push(s);
+        } else if (typeof rawServers === 'object') {
+          for (const [name, cfg] of Object.entries(rawServers)) {
+            incoming.push({ id: normalizeId(name), name, ...cfg });
+          }
+        }
+      } else if (config.command) {
+        incoming.push({
+          id: normalizeId(config.name || config.id),
+          name: config.name || config.id || 'MCP',
+          command: config.command,
+          args: config.args || [],
+          cwd: config.cwd || '',
+          env: config.env || {},
+        });
+      }
+
+      if (!incoming.length) throw new Error('Nenhum servidor encontrado na configuração.');
+
+      const servers = [...(getSettings().mcpServers || [])];
+      for (const s of incoming) {
+        const id = s.id || normalizeId(s.name);
+        const entry = {
+          id,
+          name: s.name || id,
+          command: s.command || '',
+          args: Array.isArray(s.args) ? s.args : (s.args ? [s.args] : []),
+          cwd: s.cwd || '',
+          env: s.env || {},
+          enabled: s.enabled !== false,
+        };
+        const idx = servers.findIndex((x) => x.id === id);
+        if (idx >= 0) servers[idx] = entry; else servers.push(entry);
+      }
+
+      updateSettings({ mcpServers: servers });
+      const status = await mcp.refresh();
+      return {
+        connected: true,
+        added: incoming.map((s) => s.name || s.id),
+        status,
+        message: 'Servidores conectados. As ferramentas MCP já estão disponíveis na próxima rodada.',
+      };
+    },
+  },
+  {
+    name: 'mcp_status',
+    category: 'MCP',
+    description: 'Lista servidores MCP configurados, status e ferramentas expostas.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    dangerous: false,
+    run: async () => ({
+      servers: mcp.status(),
+      definitions: mcp.definitions().map((d) => d.name),
+    }),
+  },
+  {
+    name: 'mcp_disconnect',
+    category: 'MCP',
+    description: 'Remove/desconecta um servidor MCP pelo nome ou id.',
+    parameters: {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+    },
+    dangerous: false,
+    run: async ({ name }) => {
+      const key = String(name || '').toLowerCase();
+      const servers = (getSettings().mcpServers || []).filter((s) =>
+        s.id !== name && s.name?.toLowerCase() !== key && s.id?.toLowerCase() !== key);
+      updateSettings({ mcpServers: servers });
+      await mcp.refresh();
+      return { removed: name, servers };
     },
   },
 ];

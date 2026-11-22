@@ -323,6 +323,9 @@ function register() {
         const outcome = await tools.invoke(toolName, args);
         emit(event, 'tool-result', { name: toolName, call_id: call.call_id, ok: outcome.ok,
           summary: clipForEvent(outcome) });
+        if (toolName.startsWith('mcp_')) {
+          emit(event, 'mcp-changed', { name: toolName, ok: outcome.ok });
+        }
         input.push({
           type: 'function_call',
           call_id: call.call_id || 'call',

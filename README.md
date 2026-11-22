@@ -16,7 +16,8 @@ through the Codex backend — no separate API key.
   - ⚡ **Codex** — full local agent: PowerShell/cmd, files, folders, processes,
     clipboard, MCP servers and media extraction. Optional **Full Access** toggle
     (`🔓 Full`) disables all permission prompts.
-- **23 local tools** plus dynamically discovered **MCP** tools.
+- **26 local tools** plus dynamically discovered **MCP** tools, including
+  `mcp_connect` / `mcp_status` / `mcp_disconnect` to manage servers from the chat.
 - **Reasoning effort** selector: LOW / MED / HIGH / MAX (`xhigh`).
 - **Usage panel** using the same endpoint as the Codex CLI (`wham/usage`), plus a
   local rolling **5-hour token meter** fed by both Chat and Codex from
