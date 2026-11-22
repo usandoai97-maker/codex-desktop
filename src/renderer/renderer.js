@@ -243,7 +243,7 @@ function renderUsage(data, local) {
       <span>Tokens nas últimas 5h: <strong>${local.tokens || 0}</strong>${
         local.tokenLimit ? ` de ${local.tokenLimit}` : ''}</span>
       <span>${local.count || 0} mensagens · ${
-        local.resetAt ? 'reseta ' + new Date(local.resetAt).toLocaleTimeString() : '—'}</span>
+        local.resetAt ? 'contador renova ' + new Date(local.resetAt).toLocaleTimeString() : '—'}</span>
     </div>
     ${local.tokenLeftPercent !== null ? limitBar('Tokens restantes', {
       leftPercent: local.tokenLeftPercent,
@@ -252,7 +252,8 @@ function renderUsage(data, local) {
     }) : ''}
     <p class="usage-note">Medido dos eventos <code>response.completed</code> da API, igual no navegador
     (créditos que resetam a cada 5h). A OAuth da Codex não expõe esse número, então este é o
-    consumo real medido localmente nos modos Chat e Codex.</p>
+    consumo real medido localmente nos modos Chat e Codex. Esse reset é só do contador —
+    <strong>as conversas nunca são apagadas</strong>.</p>
   </div>` : '';
 
   if (!data || !data.ok) {

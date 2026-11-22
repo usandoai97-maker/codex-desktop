@@ -56,6 +56,11 @@ const conv = require('../src/main/conversations');
   assert.equal(conv2.active().messages[0].content, 'Segunda conversa');
   console.log('✓ conversas persistem após reinício');
 
+  // Nenhuma conversa é apagada automaticamente (nem depois de 100+)
+  for (let i = 0; i < 105; i++) conv2.create({ mode: 'chat' });
+  assert.equal(conv2.list().length, 106);
+  console.log('✓ nenhuma conversa é apagada automaticamente');
+
   console.log('\nTODOS OS TESTES PASSARAM');
   process.exit(0);
 })().catch((err) => { console.error('FALHA:', err); process.exit(1); });

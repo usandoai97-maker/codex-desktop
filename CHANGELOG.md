@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.1] - 2026-11-22
+
+### Changed
+
+- Conversations are **never** removed automatically. The old 100-conversation cap
+  was deleted; only the explicit *Excluir* button removes a conversation.
+- Usage panel now says the 5h reset belongs to the **token counter** only, with an
+  explicit note that conversations never expire.
+
 ## [1.3.0] - 2026-11-22
 
 ### Changed

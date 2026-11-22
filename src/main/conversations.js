@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { app } = require('electron');
 
-const MAX = 100;
+// SEM limite e SEM expiração: conversas só saem se o usuário clicar em Excluir.
 let cache = null;
 
 function file() { return path.join(app.getPath('userData'), 'conversations.json'); }
@@ -73,10 +73,6 @@ function create(meta = {}) {
     messages: [],
   };
   load().items.push(conv);
-  if (load().items.length > MAX) {
-    load().items.sort((a, b) => b.updatedAt - a.updatedAt);
-    load().items.length = MAX;
-  }
   load().activeId = conv.id;
   persist();
   return conv;
