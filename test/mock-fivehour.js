@@ -21,16 +21,21 @@ const { updateSettings } = require('../src/main/settings');
 (async () => {
   updateSettings({ workingDirectory: TMP, fiveHourLimit: 10 });
 
+  updateSettings({ fiveHourTokenLimit: 1000 });
   fiveHour.clear();
   assert.equal(fiveHour.status().count, 0);
 
-  fiveHour.record();
-  fiveHour.record();
+  fiveHour.recordMessage();
+  fiveHour.recordMessage();
+  fiveHour.addTokens(300);
+  fiveHour.addTokens(200);
   let s = fiveHour.status();
   assert.equal(s.count, 2);
+  assert.equal(s.tokens, 500);
   assert.equal(s.windowSeconds, 18000);
   assert.equal(s.limit, 10);
   assert.equal(s.leftPercent, 80);
+  assert.equal(s.tokenLeftPercent, 50);
   assert.ok(s.resetAt > Date.now());
   assert.ok(s.resetAfterSeconds > 0 && s.resetAfterSeconds <= 18000);
   console.log('✓ contador registra mensagens com janela de 5h');

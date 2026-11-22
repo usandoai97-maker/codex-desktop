@@ -19,8 +19,9 @@ through the Codex backend — no separate API key.
 - **23 local tools** plus dynamically discovered **MCP** tools.
 - **Reasoning effort** selector: LOW / MED / HIGH / MAX (`xhigh`).
 - **Usage panel** using the same endpoint as the Codex CLI (`wham/usage`), plus a
-  local rolling **5-hour counter** fed by both Chat and Codex (the Codex OAuth API
-  only exposes a 30-day window on Free accounts), with graceful HTTP 429 handling.
+  local rolling **5-hour token meter** fed by both Chat and Codex from
+  `response.completed` usage data (the Codex OAuth API only exposes a 30-day
+  window on Free accounts), with graceful HTTP 429 handling.
 - **Saved conversations** and a unified activity history that survive restarts.
 - **Video extraction** panel: audio, frames, contact sheets and Whisper transcription.
 - Native menu and a sidebar with 9 panels.

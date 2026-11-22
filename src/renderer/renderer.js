@@ -19,6 +19,7 @@ const els = {
   cfgWorkingDir: $('cfgWorkingDir'), cfgAllowShell: $('cfgAllowShell'), cfgAllowWrite: $('cfgAllowWrite'),
   cfgAskConfirm: $('cfgAskConfirm'), cfgPython: $('cfgPython'), cfgRounds: $('cfgRounds'),
   cfgEffort: $('cfgEffort'), cfgFullAccess: $('cfgFullAccess'), cfg5hLimit: $('cfg5hLimit'),
+  cfg5hTokenLimit: $('cfg5hTokenLimit'),
   cfgPickDir: $('cfgPickDir'), saveSettings: $('saveSettings'), settingsMsg: $('settingsMsg'),
   permissionModal: $('permissionModal'), permissionInfo: $('permissionInfo'),
   permAllow: $('permAllow'), permDeny: $('permDeny'),
@@ -237,13 +238,21 @@ function limitBar(label, window) {
 
 function renderUsage(data, local) {
   const localBox = local ? `<div class="panel usage-local">
-    <h2>Janela de 5 horas (contador do app)</h2>
-    <div class="usage-head"><span>Mensagens enviadas nas últimas 5h: <strong>${local.count}</strong>${
-      local.limit ? ` de ${local.limit}` : ''}</span>
-      <span>${local.resetAt ? 'reseta ' + new Date(local.resetAt).toLocaleTimeString() : '—'}</span></div>
-    ${local.leftPercent !== null ? limitBar('Restante', local) : ''}
-    <p class="usage-note">O ChatGPT Web mostra uma cota de 5h, mas a API da Codex não a expõe via OAuth.
-    Este contador é local e real: registra cada mensagem enviada por Chat e Codex nesta janela.</p>
+    <h2>Cota de 5 horas (consumo medido)</h2>
+    <div class="usage-head">
+      <span>Tokens nas últimas 5h: <strong>${local.tokens || 0}</strong>${
+        local.tokenLimit ? ` de ${local.tokenLimit}` : ''}</span>
+      <span>${local.count || 0} mensagens · ${
+        local.resetAt ? 'reseta ' + new Date(local.resetAt).toLocaleTimeString() : '—'}</span>
+    </div>
+    ${local.tokenLeftPercent !== null ? limitBar('Tokens restantes', {
+      leftPercent: local.tokenLeftPercent,
+      resetAt: local.resetAt,
+      resetAfterSeconds: local.resetAfterSeconds,
+    }) : ''}
+    <p class="usage-note">Medido dos eventos <code>response.completed</code> da API, igual no navegador
+    (créditos que resetam a cada 5h). A OAuth da Codex não expõe esse número, então este é o
+    consumo real medido localmente nos modos Chat e Codex.</p>
   </div>` : '';
 
   if (!data || !data.ok) {
@@ -613,6 +622,7 @@ async function loadSettings() {
   els.cfgEffort.value = s.reasoningEffort || 'high';
   els.effort.value = els.cfgEffort.value;
   els.cfg5hLimit.value = s.fiveHourLimit || 0;
+  els.cfg5hTokenLimit.value = s.fiveHourTokenLimit || 0;
   applyFullAccessUI(s.fullAccess);
 }
 
@@ -627,6 +637,7 @@ async function saveSettings() {
     reasoningEffort: els.cfgEffort.value,
     fullAccess: els.cfgFullAccess.checked,
     fiveHourLimit: Number(els.cfg5hLimit.value) || 0,
+    fiveHourTokenLimit: Number(els.cfg5hTokenLimit.value) || 0,
   });
   els.effort.value = els.cfgEffort.value;
   applyFullAccessUI(els.cfgFullAccess.checked);

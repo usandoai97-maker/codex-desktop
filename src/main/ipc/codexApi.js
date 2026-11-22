@@ -144,6 +144,7 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
   const nameById = new Map();
   let buffer = '';
   let text = '';
+  let usageTokens = 0;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -177,6 +178,15 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
         if (item.arguments) prev.args = item.arguments;
         calls.set(callId, { ...prev, done: true });
       };
+
+      if (ev === 'response.completed' || ev === 'response.usage') {
+        const u = data.response?.usage || data.usage;
+        if (u) {
+          const total = u.total_tokens
+            ?? ((Number(u.input_tokens) || 0) + (Number(u.output_tokens) || 0));
+          if (total > 0) usageTokens += total;
+        }
+      }
 
       if (ev === 'response.output_text.delta' || ev === 'response.text.delta') {
         const delta = data.delta || '';
@@ -212,7 +222,7 @@ async function streamRound({ input, model, tokenResult, event, withTools, effort
     name: c.name || nameById.get(call_id) || 'unknown_tool',
     arguments: c.args || '{}',
   }));
-  return { error: false, text, calls: finalCalls };
+  return { error: false, text, calls: finalCalls, tokens: usageTokens };
 }
 
 /* ---------------- Registro de handlers ---------------- */
@@ -222,7 +232,7 @@ function register() {
 
   ipcMain.handle('codex-api:stream-request', async (event, payload = {}) => {
     // Contador local de 5h: alimentado por Chat e Codex
-    fiveHour.record();
+    fiveHour.recordMessage();
 
     // Demo: resposta falsa + demonstração de ferramenta
     if (auth.DEMO) {
@@ -296,6 +306,7 @@ function register() {
       }
 
       if (result.error) return finishChat({ error: true, status: result.status, message: result.message });
+      if (result.tokens) fiveHour.addTokens(result.tokens);
       totalText += result.text || '';
 
       if (!result.calls?.length || round === maxRounds) {

@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] - 2026-11-22
+
+### Changed
+
+- The 5-hour meter now tracks **real token consumption** from `response.completed`
+  events (`total_tokens`), not just message count. Both Chat and Codex feed it.
+- New setting `fiveHourTokenLimit` shows a progress bar against a configurable
+  token cap; message count and reset time are still displayed.
+
 ## [1.2.0] - 2026-11-22
 
 ### Added

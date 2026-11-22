@@ -17,6 +17,7 @@ const DEFAULTS = {
   reasoningEffort: 'high',
   fullAccess: false,
   fiveHourLimit: 0,
+  fiveHourTokenLimit: 0,
   mcpServers: [],
 };
 

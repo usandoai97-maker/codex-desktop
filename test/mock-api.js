@@ -195,6 +195,7 @@ const eventos = [];
   global.fetch = async () => sseChunks([
     'data: {"type":"response.output_item.added","item":{"type":"function_call","call_id":"c1","name":"get_system_info"}}',
     'data: {"type":"response.function_call_arguments.done","call_id":"c1","arguments":"{}"}',
+    'data: {"type":"response.completed","response":{"usage":{"input_tokens":100,"output_tokens":50,"total_tokens":150}}}',
     'data: [DONE]',
   ]);
   const parsed = await streamRound({
@@ -203,7 +204,8 @@ const eventos = [];
   });
   assert.equal(parsed.calls.length, 1);
   assert.equal(parsed.calls[0].name, 'get_system_info');
-  console.log('✓ nome da ferramenta capturado de output_item.added');
+  assert.equal(parsed.tokens, 150);
+  console.log('✓ nome capturado de output_item.added + tokens de response.completed');
 
   global.fetch = async () => sseChunks([
     'data: {"type":"response.function_call_arguments.done","call_id":"c2","arguments":"{}"}',
