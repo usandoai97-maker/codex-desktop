@@ -1,0 +1,17 @@
+node_modules/
+__pycache__/
+*.pyc
+dist/
+build/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+# dados locais ( nunca versionar )
+*.json.bak
+codex-auth.json
+settings.json
+history.json
+conversations.json

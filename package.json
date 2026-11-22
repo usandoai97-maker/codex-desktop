@@ -1,0 +1,19 @@
+{
+  "name": "codex-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Recriação didática do fluxo OAuth + PKCE do Codex em um app Electron (baseado no vídeo)",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "demo": "set CODEX_DEMO_MODE=1&& electron .",
+    "check": "node --check src/main/index.js && node --check src/main/codexAuth.js && node --check src/main/preload.js && node --check src/main/ipc/codexAuth.js && node --check src/main/ipc/codexApi.js && node --check src/renderer/renderer.js",
+    "test": "node test/mock-flow.js && node test/mock-api.js && node test/mock-tools.js && node test/mock-usage.js && node test/mock-conversations.js"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  }
+}
